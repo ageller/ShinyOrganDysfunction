@@ -30,6 +30,20 @@ df <- df %>%
 		Technology_Dependence == 1 ~ "Yes",
 	)) 
 
+# get the unique organ types
+foo <- colnames(select(df, contains("Day")))
+foo <- strsplit(foo, '_')
+foo <- sapply(foo,"[[", 2)
+organs <- unlist(unique(foo), use.names = FALSE)
+organs <- organs[!organs %in% 'Count']
+
+# for each organ type create a new column that has 0 or 1 if any day had that failure
+for (cc in organs){
+    foo <- select(df, contains(cc))
+    df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
+}
+
+# create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
 outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
 genders <- sort(unlist(unique(df$Gender), use.names = FALSE))
@@ -37,7 +51,6 @@ seasons <- sort(unlist(unique(df$Season_Admission), use.names = FALSE))
 malignancies <- sort(unlist(unique(df$Malignancy), use.names = FALSE))
 transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
 technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
-
 
 # Define UI 
 ui <- fluidPage(
@@ -68,18 +81,32 @@ ui <- fluidPage(
 					selected = seasons
 				),
 			),
+			tabPanel("Organs",
+				p("Patient had organ failure on any day from any criteria:"),
+				lapply(1:length(organs), function(i) {
+					oo <- organs[i]
+					radioButtons(paste0(oo, "Checkbox"), paste("Had",oo,"failure"),
+						choices = c("Any","No","Yes"),
+						selected = "Any",
+						inline = TRUE
+					)
+				})
+			),
 			tabPanel("Misc.",
-				checkboxGroupInput("malignancyCheckbox", "Had Malignancy",
-					malignancies,
-					selected = malignancies
+				radioButtons("malignancyCheckbox", "Had Malignancy",
+					append("Any",malignancies),
+					selected = "Any",
+					inline = TRUE
 				),
-				checkboxGroupInput("transplantCheckbox", "Had Tranplant",
-					transplants,
-					selected = transplants
+				radioButtons("transplantCheckbox", "Had Tranplant",
+					append("Any", transplants),
+					selected = "Any",
+					inline = TRUE
 				),
-				checkboxGroupInput("technologyDependenceCheckbox", "Had Technology Dependence",
-					technologyDependencies,
-					selected = technologyDependencies
+				radioButtons("technologyDependenceCheckbox", "Had Technology Dependence",
+					append("Any", technologyDependencies),
+					selected = "Any",
+					inline = TRUE
 				),
 			),
 		),
@@ -123,7 +150,7 @@ ui <- fluidPage(
 	mainPanel(
 
 		# Output: Formatted text for debugging (or a caption) 
-		p(textOutput("debug")),
+		#p(textOutput("debug")),
 		h4(textOutput("info")),
 
 		# Output: Plot of the requested variable against mpg 
@@ -150,13 +177,6 @@ server <- function(input, output) {
 		})
 	})
 
-	# update the data
-	# data <- reactive({
-
-	#     temp <- subset(iris, Species == input$species)
-	#     subset(temp, Sepal.Length < input$sepal_length)
-
-	# })
 
 	# information about the plot
 	# 
@@ -180,24 +200,39 @@ server <- function(input, output) {
 	# )
 	output$life_support_bar_plot <- renderPlot({
 		input$updatePlot
+
 		isolate({
-			usedf <- applyDataSelections(df, input$AgeGroupCheckbox, input$GenderCheckbox, input$SeasonCheckbox, input$malignancyCheckbox, input$transplantCheckbox, input$technologyDependenceCheckbox)
+			# compile all the selections and apply them
+			selections <- list("Age_Group" = input$AgeGroupCheckbox,
+				"Gender" = input$GenderCheckbox,
+				"Season_Admission" = input$SeasonCheckbox,
+				"Malignancy" = input$malignancyCheckbox,
+				"Transplant" = input$transplantCheckbox,
+				"Technology_Dependence" = input$technologyDependenceCheckbox
+				)
+
+			for (oo in organs){
+				selections[[oo]] <- c(input[[paste0(oo, "Checkbox")]])
+			}
+			print(selections)
+
+			usedf <- applyDataSelections(df, selections)
+
+			# create the plot
 			generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
 		})
 	})
 
 }
 
-applyDataSelections <- function(usedf, ageSelections, genderSelections, seasonSelections, malignancySelections, transplantSelections, technologySelections){
+applyDataSelections <- function(usedf, selections){
 
-	outdf <- usedf[usedf$Age_Group %in% ageSelections & 
-				   usedf$Gender %in% genderSelections & 
-				   usedf$Season_Admission %in% seasonSelections &
-				   usedf$Malignancy %in% malignancySelections &
-				   usedf$Transplant %in% transplantSelections & 
-				   usedf$Technology_Dependence %in% technologySelections, 
-				  ]
+	outdf <- usedf
 
+	for (ss in names(selections)){
+		if (selections[[ss]] == "Any") selections[[ss]] <- c("No", "Yes")
+		outdf <- outdf[ outdf[[ss]] %in% selections[[ss]], ]
+	}
 
 	return(outdf)
 
