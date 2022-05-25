@@ -1,5 +1,4 @@
-# fix plotly
-# can I include a button to recreate plot? rather than rerunning every time an input is changed
+# for tabs: https://shiny.rstudio.com/articles/tabsets.html
 
 library(dplyr)
 library(tidyr)
@@ -14,11 +13,27 @@ df <- read.csv('data/od_viz_binary.csv')
 
 # add a column to have strings for lived vs. died 
 df <- df %>%
-   mutate(Outcome = case_when(
+	mutate(Outcome = case_when(
 		Died == 0 ~ "Lived",
 		Died == 1 ~ "Died",
-))
+	)) %>%
+	mutate(Malignancy = case_when(
+		Malignancy == 0 ~ "No",
+		Malignancy == 1 ~ "Yes",
+	)) %>%
+	mutate(Transplant = case_when(
+		Transplant == 0 ~ "No",
+		Transplant == 1 ~ "Yes",
+	)) %>% 
+	mutate(Technology_Dependence = case_when(
+		Technology_Dependence == 0 ~ "No",
+		Technology_Dependence == 1 ~ "Yes",
+	)) 
 
+ages = sort(unlist(unique(df['Age_Group']), use.names = FALSE))
+outcomes = sort(unlist(unique(df['Outcome']), use.names = FALSE))
+genders = sort(unlist(unique(df['Gender']), use.names = FALSE))
+seasons = sort(unlist(unique(df['Season_Admission']), use.names = FALSE))
 
 # Define UI 
 ui <- fluidPage(
@@ -29,41 +44,78 @@ ui <- fluidPage(
 	# Sidebar panel for inputs 
 	sidebarPanel(
 
-		selectInput(
-			"div1", "Aggregate First", 
-			c("Age Group" = "Age_Group", 
-				"Outcome" = "Outcome",
-				"Season Admission" = "Season_Admission",
-				"Gender" = "Gender"
+		h4("1. Select the subset of the data to include."),
+		tabsetPanel(
+			tabPanel("Age Group",
+				checkboxGroupInput("AgeGroupCheckbox", "",
+					ages,
+					selected=ages
+				),
 			),
-			selected = "Age Group"
+			tabPanel("Gender",
+				checkboxGroupInput("GenderCheckbox", "",
+					genders,
+					selected=genders
+				),
+			),
+			tabPanel("Season",
+				checkboxGroupInput("SeasonCheckbox", "",
+					seasons,
+					selected=seasons
+				),
+			),
+			tabPanel("Misc.",
+				checkboxGroupInput("additionalCheckboxes", "",
+					c("Malignancy"="Malignancy",
+					  "Transplant"="Transplant",
+					  "Technology Dependence"="Technology_Dependence"
+					),
+					selected=c("Malignancy", "Transplant", "Technology_Dependence")
+				),
+			),
 		),
 
+
+		hr(style = "border-top: 1px solid #000000;"),
+		h4("2. Specify how to aggregate the data."),
 		selectInput(
-			"div2", "Aggregate Second", 
+			"div1", "First Aggregation Group", 
 			c("Age Group" = "Age_Group", 
 				"Outcome" = "Outcome",
 				"Season Admission" = "Season_Admission",
 				"Gender" = "Gender",
+				"Malignancy" = "Malignancy",
+				"Transplant" = "Transplant",
+				"Technology Dependence" = "Technology_Dependence"
+			),
+			selected = "Age Group"
+		),
+		selectInput(
+			"div2", "Second Aggregation Group (optional)", 
+			c("Age Group" = "Age_Group", 
+				"Outcome" = "Outcome",
+				"Season Admission" = "Season_Admission",
+				"Gender" = "Gender",
+				"Malignancy" = "Malignancy",
+				"Transplant" = "Transplant",
+				"Technology Dependence" = "Technology_Dependence",
 				"None" = "None"
 			),
 			selected = "None"
 		),
 
-		p("Please click the button below to update the plot."),
-
+		hr(style = "border-top: 1px solid #000000;"),
+		h4("3. Click the button below to update the plot."),
 		actionButton("updatePlot", "Update Plot"),
-	# 	sliderInput("rollingWindow", "Days for rolling mean:", 1, 30, 7, step = 1)
 	),
-
 
 
 	# Main panel for displaying outputs 
 	mainPanel(
 
 		# Output: Formatted text for debugging (or a caption) 
-		p(textOutput("debug")),
-		p(textOutput("info")),
+		#p(textOutput("debug")),
+		h4(textOutput("info")),
 
 		# Output: Plot of the requested variable against mpg 
 		#plotlyOutput("life_support_bar_plot")
