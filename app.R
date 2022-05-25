@@ -1,3 +1,6 @@
+# fix plotly
+# can I include a button to recreate plot? rather than rerunning every time an input is changed
+
 library(dplyr)
 library(tidyr)
 
@@ -47,7 +50,9 @@ ui <- fluidPage(
 			selected = "None"
 		),
 
+		p("Please click the button below to update the plot."),
 
+		actionButton("updatePlot", "Update Plot"),
 	# 	sliderInput("rollingWindow", "Days for rolling mean:", 1, 30, 7, step = 1)
 	),
 
@@ -71,13 +76,25 @@ ui <- fluidPage(
 
 # Define server logic 
 server <- function(input, output) {
+
 	# for debugging
 	debugging <- reactive({
 		paste(input$div1, input$div2)
 	})
 	output$debug <- renderText({
-		debugging()
+		input$updatePlot
+		isolate({
+			debugging()
+		})
 	})
+
+	# update the data
+    # data <- reactive({
+
+    #     temp <- subset(iris, Species == input$species)
+    #     subset(temp, Sepal.Length < input$sepal_length)
+
+    # })
 
 	# information about the plot
 	# 
@@ -86,19 +103,31 @@ server <- function(input, output) {
 		if (input$div2 != "None") txt <- paste(txt, "and", input$div2)
 		txt
 	})
+
+
 	output$info <- renderText({
-		text_info()
+		input$updatePlot
+		isolate({
+			text_info()
+		})
 	})
-
-
 
 	# Generate the plot 
 	# output$life_support_bar_plot <- renderPlotly(
 	# 	generate_bar_plot("Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2, )
 	# )
-	output$life_support_bar_plot <- renderPlot(
-		generate_bar_plot("Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
-	)
+	output$life_support_bar_plot <- renderPlot({
+		input$updatePlot
+		isolate({
+			generate_bar_plot("Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
+		})
+	})
+
+
+
+
+
+
 }
 
 
