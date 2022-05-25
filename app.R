@@ -30,10 +30,14 @@ df <- df %>%
 		Technology_Dependence == 1 ~ "Yes",
 	)) 
 
-ages = sort(unlist(unique(df['Age_Group']), use.names = FALSE))
-outcomes = sort(unlist(unique(df['Outcome']), use.names = FALSE))
-genders = sort(unlist(unique(df['Gender']), use.names = FALSE))
-seasons = sort(unlist(unique(df['Season_Admission']), use.names = FALSE))
+ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
+outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
+genders <- sort(unlist(unique(df$Gender), use.names = FALSE))
+seasons <- sort(unlist(unique(df$Season_Admission), use.names = FALSE))
+malignancies <- sort(unlist(unique(df$Malignancy), use.names = FALSE))
+transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
+technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
+
 
 # Define UI 
 ui <- fluidPage(
@@ -49,28 +53,33 @@ ui <- fluidPage(
 			tabPanel("Age Group",
 				checkboxGroupInput("AgeGroupCheckbox", "",
 					ages,
-					selected=ages
+					selected = ages
 				),
 			),
 			tabPanel("Gender",
 				checkboxGroupInput("GenderCheckbox", "",
 					genders,
-					selected=genders
+					selected = genders
 				),
 			),
 			tabPanel("Season",
 				checkboxGroupInput("SeasonCheckbox", "",
 					seasons,
-					selected=seasons
+					selected = seasons
 				),
 			),
 			tabPanel("Misc.",
-				checkboxGroupInput("additionalCheckboxes", "",
-					c("Malignancy"="Malignancy",
-					  "Transplant"="Transplant",
-					  "Technology Dependence"="Technology_Dependence"
-					),
-					selected=c("Malignancy", "Transplant", "Technology_Dependence")
+				checkboxGroupInput("malignancyCheckbox", "Had Malignancy",
+					malignancies,
+					selected = malignancies
+				),
+				checkboxGroupInput("transplantCheckbox", "Had Tranplant",
+					transplants,
+					selected = transplants
+				),
+				checkboxGroupInput("technologyDependenceCheckbox", "Had Technology Dependence",
+					technologyDependencies,
+					selected = technologyDependencies
 				),
 			),
 		),
@@ -114,7 +123,7 @@ ui <- fluidPage(
 	mainPanel(
 
 		# Output: Formatted text for debugging (or a caption) 
-		#p(textOutput("debug")),
+		p(textOutput("debug")),
 		h4(textOutput("info")),
 
 		# Output: Plot of the requested variable against mpg 
@@ -131,7 +140,8 @@ server <- function(input, output) {
 
 	# for debugging
 	debugging <- reactive({
-		paste(input$div1, input$div2)
+		#paste(input$div1, input$div2, input$additionalCheckboxes)
+		paste(input$technologyDependenceCheckbox)
 	})
 	output$debug <- renderText({
 		input$updatePlot
@@ -141,12 +151,12 @@ server <- function(input, output) {
 	})
 
 	# update the data
-    # data <- reactive({
+	# data <- reactive({
 
-    #     temp <- subset(iris, Species == input$species)
-    #     subset(temp, Sepal.Length < input$sepal_length)
+	#     temp <- subset(iris, Species == input$species)
+	#     subset(temp, Sepal.Length < input$sepal_length)
 
-    # })
+	# })
 
 	# information about the plot
 	# 
@@ -171,19 +181,29 @@ server <- function(input, output) {
 	output$life_support_bar_plot <- renderPlot({
 		input$updatePlot
 		isolate({
-			generate_bar_plot("Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
+			usedf <- applyDataSelections(df, input$AgeGroupCheckbox, input$GenderCheckbox, input$SeasonCheckbox, input$malignancyCheckbox, input$transplantCheckbox, input$technologyDependenceCheckbox)
+			generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
 		})
 	})
 
+}
+
+applyDataSelections <- function(usedf, ageSelections, genderSelections, seasonSelections, malignancySelections, transplantSelections, technologySelections){
+
+	outdf <- usedf[usedf$Age_Group %in% ageSelections & 
+				   usedf$Gender %in% genderSelections & 
+				   usedf$Season_Admission %in% seasonSelections &
+				   usedf$Malignancy %in% malignancySelections &
+				   usedf$Transplant %in% transplantSelections & 
+				   usedf$Technology_Dependence %in% technologySelections, 
+				  ]
 
 
-
-
+	return(outdf)
 
 }
 
-
-select_and_summarize <- function(cols, selections, usedf) {
+select_and_summarize <- function(usedf, cols, selections) {
 	# select frome a dataframe and summarize elements for bar chart
 
 	Nsample <- "Nsample"
@@ -209,7 +229,7 @@ select_and_summarize <- function(cols, selections, usedf) {
 
 }
 
-calculate_pct_and_sig <- function(cols, selections, usedf) {
+calculate_pct_and_sig <- function(usedf, cols, selections) {
 	# calculate percentages and errors
 	pctdf <- usedf
 	sigdf <- usedf
@@ -231,7 +251,7 @@ calculate_pct_and_sig <- function(cols, selections, usedf) {
 	return(list("pct" = pctdf, "sig" = sigdf))
 }
 
-cbind_and_pivot <- function(plot_type, selections, psdf){
+cbind_and_pivot <- function(psdf, plot_type, selections){
 
 	# reorder this table so that it is easier to use with ggplot
 
@@ -259,7 +279,7 @@ cbind_and_pivot <- function(plot_type, selections, psdf){
 
 }
 
-set_fill_patterns <- function(col, usedf){
+set_fill_patterns <- function(usedf, col){
 	#patterns <- c("none", "stripe", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
 	patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
 
@@ -270,38 +290,38 @@ set_fill_patterns <- function(col, usedf){
 	return(col_patterns)
 }
 
-prep_bar_chart_data <- function(plot_type, cols, div1, div2, usedf){
+prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 
 	############################################
 	# percentage within each group given the selections
 	selections <- c(div1)
 	if (div2 != "None") selections <- append(selections, div2)
 
-	df1 <- select_and_summarize(cols, selections,usedf)
-	psdf <- calculate_pct_and_sig(cols, selections, df1)
-	outdf <- cbind_and_pivot(plot_type, selections, psdf)
+	df1 <- select_and_summarize(usedf, cols, selections)
+	psdf <- calculate_pct_and_sig(df1, cols, selections)
+	outdf <- cbind_and_pivot(psdf, plot_type, selections)
 
 	############################################
 	# mortality percentage given the selections
 	if (div1 != "Outcome" && div2 != "Outcome") selections <- append(selections, "Outcome")
-	df1m <- select_and_summarize(cols, selections,usedf)
+	df1m <- select_and_summarize(usedf, cols, selections)
 	died <- df1m[df1m$Outcome == "Died",]
-	psdfm <- calculate_pct_and_sig(cols, selections, died)
-	outdfm <- cbind_and_pivot(plot_type, selections, psdfm)
+	psdfm <- calculate_pct_and_sig(died, cols, selections)
+	outdfm <- cbind_and_pivot(psdfm, plot_type, selections)
 
 
 	############################################
 	# set the patterns
 	div2_patterns <- c("None" = "none")
-	if (div2 != "None") div2_patterns <- set_fill_patterns(div2, outdf)
+	if (div2 != "None") div2_patterns <- set_fill_patterns(outdf, div2)
 	
 	return(list("df" = outdf, "dfm" = outdfm, "patterns" = div2_patterns))
 
 }
 
-generate_bar_plot <- function(plot_type, cols, div1, div2){
+generate_bar_plot <- function(usedf, plot_type, cols, div1, div2){
 
-	bardf = prep_bar_chart_data(plot_type, cols, div1, div2, df)
+	bardf = prep_bar_chart_data(usedf, plot_type, cols, div1, div2)
 	usedf1 = bardf$df
 	usedf1m = bardf$dfm
 	div2_patterns = bardf$patterns
