@@ -30,6 +30,16 @@ df <- df %>%
 		Technology_Dependence == 1 ~ "Yes",
 	)) 
 
+
+# create vectors for the checkboxes
+ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
+outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
+genders <- sort(unlist(unique(df$Gender), use.names = FALSE))
+seasons <- sort(unlist(unique(df$Season_Admission), use.names = FALSE))
+malignancies <- sort(unlist(unique(df$Malignancy), use.names = FALSE))
+transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
+technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
+
 # get the unique organ types
 foo <- colnames(select(df, contains("Day")))
 foo <- strsplit(foo, '_')
@@ -43,14 +53,7 @@ for (cc in organs){
     df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
 }
 
-# create vectors for the checkboxes
-ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
-outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
-genders <- sort(unlist(unique(df$Gender), use.names = FALSE))
-seasons <- sort(unlist(unique(df$Season_Admission), use.names = FALSE))
-malignancies <- sort(unlist(unique(df$Malignancy), use.names = FALSE))
-transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
-technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
+usedf <- df
 
 # Define UI 
 ui <- fluidPage(
@@ -85,8 +88,8 @@ ui <- fluidPage(
 				p("Patient had organ failure on any day from any criteria:"),
 				lapply(1:length(organs), function(i) {
 					oo <- organs[i]
-					radioButtons(paste0(oo, "Checkbox"), paste("Had",oo,"failure"),
-						choices = c("Any","No","Yes"),
+					radioButtons(paste0(oo, "Checkbox"), paste("Had", oo, "failure"),
+						choices = c("Any", "No", "Yes"),
 						selected = "Any",
 						inline = TRUE
 					)
@@ -94,7 +97,7 @@ ui <- fluidPage(
 			),
 			tabPanel("Misc.",
 				radioButtons("malignancyCheckbox", "Had Malignancy",
-					append("Any",malignancies),
+					append("Any", malignancies),
 					selected = "Any",
 					inline = TRUE
 				),
@@ -149,13 +152,30 @@ ui <- fluidPage(
 	# Main panel for displaying outputs 
 	mainPanel(
 
-		# Output: Formatted text for debugging (or a caption) 
+		# text describing plot (and debugging) 
 		#p(textOutput("debug")),
 		h4(textOutput("info")),
 
-		# Output: Plot of the requested variable against mpg 
-		#plotlyOutput("life_support_bar_plot")
-		plotOutput("life_support_bar_plot")
+		# plots (slightly different sizes to account for the legend?)
+		plotOutput("life_support_bar_plot_overall",
+			height = "300px",
+			width = "100%",
+			brush = brushOpts(
+				id = "life_support_bar_plot_overall_brush",
+				resetOnNew = TRUE
+			)
+		),
+
+		plotOutput("life_support_bar_plot_mortality",
+			height = "350px",
+			width = "100%",
+			brush = brushOpts(
+				id = "life_support_bar_plot_mortality_brush",
+				resetOnNew = TRUE
+			)
+		)
+
+
 	)
 )
 
@@ -181,9 +201,12 @@ server <- function(input, output) {
 	# information about the plot
 	# 
 	text_info <- reactive({
-		txt <- paste("Life support type aggregated by",input$div1)
-		if (input$div2 != "None") txt <- paste(txt, "and", input$div2)
-		txt
+		input$updatePlot
+		isolate({
+			txt <- paste("Life support type aggregated by",input$div1)
+			if (input$div2 != "None") txt <- paste(txt, "and", input$div2)
+			txt
+		})
 	})
 
 
@@ -194,34 +217,88 @@ server <- function(input, output) {
 		})
 	})
 
-	# Generate the plot 
-	# output$life_support_bar_plot <- renderPlotly(
-	# 	generate_bar_plot("Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2, )
-	# )
-	output$life_support_bar_plot <- renderPlot({
-		input$updatePlot
 
+
+	# function to compile all the selections and apply them
+	selectData <- reactive({
+		selections <- list("Age_Group" = input$AgeGroupCheckbox,
+			"Gender" = input$GenderCheckbox,
+			"Season_Admission" = input$SeasonCheckbox,
+			"Malignancy" = input$malignancyCheckbox,
+			"Transplant" = input$transplantCheckbox,
+			"Technology_Dependence" = input$technologyDependenceCheckbox
+			)
+
+		for (oo in organs){
+			selections[[oo]] <- c(input[[paste0(oo, "Checkbox")]])
+		}
+		#print(selections)
+
+		applyDataSelections(df, selections)
+	})
+
+	# generate two separate plots, each will be zoomable
+	ranges_overall <- reactiveValues(x = NULL, y = NULL)
+	ranges_mortality <- reactiveValues(x = NULL, y = NULL)
+	plots <- reactiveValues(overall = NULL, mortality = NULL)
+
+	# function to create the plots
+	create_plot <- reactive({
+		# check if there is any brushing for zoom
+		brush_overall <- input$life_support_bar_plot_overall_brush
+		if (!is.null(brush_overall)) {
+			ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
+			ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
+
+		} else {
+			ranges_overall$x <- NULL
+			ranges_overall$y <- NULL
+		}
+
+		brush_mortality <- input$life_support_bar_plot_mortality_brush
+		if (!is.null(brush_mortality)) {
+			ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
+			ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
+
+		} else {
+			ranges_mortality$x <- NULL
+			ranges_mortality$y <- NULL
+		}
+
+		generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2, ranges_overall, ranges_mortality)
+
+	})
+
+	# when button is clicked, select the data and update plots object
+	observe({
+		input$updatePlot 
 		isolate({
-			# compile all the selections and apply them
-			selections <- list("Age_Group" = input$AgeGroupCheckbox,
-				"Gender" = input$GenderCheckbox,
-				"Season_Admission" = input$SeasonCheckbox,
-				"Malignancy" = input$malignancyCheckbox,
-				"Transplant" = input$transplantCheckbox,
-				"Technology_Dependence" = input$technologyDependenceCheckbox
-				)
+			# take the selection on the data
+			usedf <- selectData()
 
-			for (oo in organs){
-				selections[[oo]] <- c(input[[paste0(oo, "Checkbox")]])
-			}
-			print(selections)
+			# create the plots and save them in the plots object
+			foo <- create_plot()
+			plots$overall <- foo$overall
+			plots$mortality <- foo$mortality
 
-			usedf <- applyDataSelections(df, selections)
-
-			# create the plot
-			generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2)
 		})
 	})
+
+	# set the output for the plots
+	output$life_support_bar_plot_overall <- renderPlot({
+		input$updatePlot
+		isolate({
+			plots$overall
+		})
+	})
+	output$life_support_bar_plot_mortality <- renderPlot({
+		input$updatePlot
+		isolate({
+			plots$mortality
+		})
+	})
+
+
 
 }
 
@@ -230,8 +307,8 @@ applyDataSelections <- function(usedf, selections){
 	outdf <- usedf
 
 	for (ss in names(selections)){
-		if (selections[[ss]] == "Any") selections[[ss]] <- c("No", "Yes")
-		outdf <- outdf[ outdf[[ss]] %in% selections[[ss]], ]
+		ifelse(selections[[ss]] == "Any", select <- c("No", "Yes"), select <- selections[[ss]])
+		outdf <- outdf[ outdf[[ss]] %in% select, ]
 	}
 
 	return(outdf)
@@ -327,6 +404,7 @@ set_fill_patterns <- function(usedf, col){
 
 prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 
+
 	############################################
 	# percentage within each group given the selections
 	selections <- c(div1)
@@ -354,7 +432,52 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 
 }
 
-generate_bar_plot <- function(usedf, plot_type, cols, div1, div2){
+single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1){
+	f <- ggplot(usedf, aes_string(fill=div1,  y="percent", x=plot_type)) + 
+		geom_bar(stat = "identity", position = "dodge", color="black") + 
+		#labs(x = plot_type, y = "Percentage")
+		labs(x = "", y = "Percentage")
+
+	fm <- ggplot(usedfm, aes_string(fill=div1,  y="percent", x=plot_type)) + 
+		geom_bar(stat = "identity", position = "dodge", color="black") + 
+		labs(x = plot_type, y = "Mortality Percentage")	
+
+	return(list("f" = f, "fm" = fm))
+}
+
+double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2_patterns){
+
+	f <- ggplot(usedf, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
+		geom_bar_pattern(stat = "identity", position = "dodge",
+					   color = "black", 
+					   pattern_fill = "black",
+					   pattern_angle = 45,
+					   pattern_density = 0.1,
+					   pattern_spacing = 0.025,
+					   pattern_key_scale_factor = 0.6) +
+		scale_pattern_manual(values = div2_patterns) +
+		#labs(x = plot_type, y = "Overall Percentage", pattern = div2) + 
+		labs(x = "", y = "Overall Percentage", pattern = div2) + 
+		guides(pattern = guide_legend(override.aes = list(fill = "white")),
+			  fill = guide_legend(override.aes = list(pattern = "none")))
+	
+	fm <- ggplot(usedfm, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
+		geom_bar_pattern(stat = "identity", position = "dodge",
+					   color = "black", 
+					   pattern_fill = "black",
+					   pattern_angle = 45,
+					   pattern_density = 0.1,
+					   pattern_spacing = 0.025,
+					   pattern_key_scale_factor = 0.6) +
+		scale_pattern_manual(values = div2_patterns) +
+		labs(x = plot_type, y = "Mortality Percentage", pattern = div2) + 
+		guides(pattern = guide_legend(override.aes = list(fill = "white")),
+			  fill = guide_legend(override.aes = list(pattern = "none")))
+
+	return(list("f" = f, "fm" = fm))	
+}
+
+generate_bar_plot <- function(usedf, plot_type, cols, div1, div2, range1, range2){
 
 	bardf = prep_bar_chart_data(usedf, plot_type, cols, div1, div2)
 	usedf1 = bardf$df
@@ -370,58 +493,36 @@ generate_bar_plot <- function(usedf, plot_type, cols, div1, div2){
 	# top panel (f1) shows percent in each group
 	# bottom panel (f1m) shows mortality percent in each group
 
+	# set the plot range if not brushed
+	if (is.null(range1$x)) range1$x <- c(0.5, length(cols)+0.5)
+	if (is.null(range1$y)) range1$y <- c(0, 1.1*max((usedf1$percent + usedf1$sig_percent)))
+
+	if (is.null(range2$x)) range2$x <- c(0.5, length(cols)+0.5)
+	if (is.null(range2$y)) range2$y <- c(0, 1.1*max((usedf1m$percent + usedf1m$sig_percent)))
+
 	# I don't think there's a clean way to do this without an if statement
-	if (div2 == "None"){
-		f1 <- ggplot(usedf1, aes_string(fill=div1,  y="percent", x=plot_type)) + 
-			geom_bar(stat = "identity", position = "dodge", color="black") + 
-			labs(x = plot_type, y = "Percentage")
+	ifelse(div2 == "None",
+		fig <- single_aggregate_bar_plot(usedf1, usedf1m, plot_type, div1),
+		fig <- double_aggregate_bar_plot(usedf1, usedf1m, plot_type, div1, div2, div2_patterns)
+	)
 
-		f1m <- ggplot(usedf1m, aes_string(fill=div1,  y="percent", x=plot_type)) + 
-			geom_bar(stat = "identity", position = "dodge", color="black") + 
-			labs(x = plot_type, y = "Mortality Percentage")
-		
-	} else {
-		f1 <- ggplot(usedf1, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
-			geom_bar_pattern(stat = "identity", position = "dodge",
-						   color = "black", 
-						   pattern_fill = "black",
-						   pattern_angle = 45,
-						   pattern_density = 0.1,
-						   pattern_spacing = 0.025,
-						   pattern_key_scale_factor = 0.6) +
-			scale_pattern_manual(values = div2_patterns) +
-			labs(x = plot_type, y = "Overall Percentage", pattern = div2) + 
-			guides(pattern = guide_legend(override.aes = list(fill = "white")),
-				  fill = guide_legend(override.aes = list(pattern = "none")))
-		
-		f1m <- ggplot(usedf1m, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
-			geom_bar_pattern(stat = "identity", position = "dodge",
-						   color = "black", 
-						   pattern_fill = "black",
-						   pattern_angle = 45,
-						   pattern_density = 0.1,
-						   pattern_spacing = 0.025,
-						   pattern_key_scale_factor = 0.6) +
-			scale_pattern_manual(values = div2_patterns) +
-			labs(x = plot_type, y = "Mortality Percentage", pattern = div2) + 
-			guides(pattern = guide_legend(override.aes = list(fill = "white")),
-				  fill = guide_legend(override.aes = list(pattern = "none")))
-	}
-
-	f1 <- f1 +  
+	# these are common to either type of plot so can use here (outside of if statement)
+	f1 <- fig$f +  
 		scale_fill_brewer(palette = "Blues") +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
-		coord_cartesian(ylim = c(0, 1.1*max((usedf1$percent + usedf1$sig_percent))), expand = FALSE) + 
-		theme_bw()
+		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
+		theme_bw() + theme(legend.position = "none")
 
-	f1m <- f1m +  
+	f1m <- fig$fm +  
 		scale_fill_brewer(palette = "Blues") +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
-		coord_cartesian(ylim = c(0, 1.1*max((usedf1m$percent + usedf1m$sig_percent))), expand = FALSE) + 
-		theme_bw()
+		coord_cartesian(xlim = range2$x, ylim = range2$y, expand = FALSE) + 
+		theme_bw() + theme(legend.position = "bottom")
 
 
-	ggarrange(f1, f1m, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+	return(list("overall" = f1, "mortality" = f1m))
+
+	#ggarrange(f1, f1m, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
 	# p <- ggarrange(f1, f1m, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
 	# ggplotly(p, tooltip = "text")
 
