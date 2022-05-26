@@ -144,7 +144,7 @@ ui <- fluidPage(
 		hr(style = "border-top: 1px solid #000000;"),
 		h4("2. Specify how to aggregate the data."),
 		selectInput(
-			"div1", "First Aggregation Group", 
+			"agg1", "First Aggregation Group", 
 			c("Age Group" = "Age_Group", 
 				"Outcome" = "Outcome",
 				"Season Admission" = "Season_Admission",
@@ -156,7 +156,7 @@ ui <- fluidPage(
 			selected = "Age Group"
 		),
 		selectInput(
-			"div2", "Second Aggregation Group (optional)", 
+			"agg2", "Second Aggregation Group (optional)", 
 			c("Age Group" = "Age_Group", 
 				"Outcome" = "Outcome",
 				"Season Admission" = "Season_Admission",
@@ -215,7 +215,7 @@ server <- function(input, output) {
 
 	# for debugging
 	debugging <- reactive({
-		#paste(input$div1, input$div2, input$additionalCheckboxes)
+		#paste(input$agg1, input$agg2, input$additionalCheckboxes)
 		paste(input$technologyDependenceCheckbox)
 	})
 	output$debug <- renderText({
@@ -231,8 +231,8 @@ server <- function(input, output) {
 	text_info <- reactive({
 		input$updatePlot
 		isolate({
-			txt <- paste("Life support type aggregated by",input$div1)
-			if (input$div2 != "None") txt <- paste(txt, "and", input$div2)
+			txt <- paste("Life support type aggregated by",input$agg1)
+			if (input$agg2 != "None") txt <- paste(txt, "and", input$agg2)
 			txt
 		})
 	})
@@ -293,7 +293,7 @@ server <- function(input, output) {
 			ranges_mortality$y <- NULL
 		}
 
-		generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$div1, input$div2, ranges_overall, ranges_mortality)
+		generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$agg1, input$agg2, ranges_overall, ranges_mortality)
 
 	})
 
@@ -358,11 +358,11 @@ select_and_summarize <- function(usedf, cols, selections) {
 		group_by_at(append(selections, c(Nsample, Ntotal))) %>%
 		summarise_at(vars(one_of(cols)), sum, na.rm=TRUE)
 	
-	# get the total number using just div1 (I don't think there's a simple way to do this in the above command)
-	div1 <- selections[1]
-	div1_values = unlist(unique(out[div1]), use.names = FALSE)
-	for (dd in div1_values){
-		out[out[div1] == dd,]$Ntotal <- sum(out[out[div1] == dd,]$Nsample)
+	# get the total number using just agg1 (I don't think there's a simple way to do this in the above command)
+	agg1 <- selections[1]
+	agg1_values = unlist(unique(out[agg1]), use.names = FALSE)
+	for (dd in agg1_values){
+		out[out[agg1] == dd,]$Ntotal <- sum(out[out[agg1] == dd,]$Nsample)
 	}
 	
 	return(out)
@@ -430,13 +430,13 @@ set_fill_patterns <- function(usedf, col){
 	return(col_patterns)
 }
 
-prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
+prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 
 
 	############################################
 	# percentage within each group given the selections
-	selections <- c(div1)
-	if (div2 != "None") selections <- append(selections, div2)
+	selections <- c(agg1)
+	if (agg2 != "None") selections <- append(selections, agg2)
 
 	df1 <- select_and_summarize(usedf, cols, selections)
 	psdf <- calculate_pct_and_sig(df1, cols, selections)
@@ -444,7 +444,7 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 
 	############################################
 	# mortality percentage given the selections
-	if (div1 != "Outcome" && div2 != "Outcome") selections <- append(selections, "Outcome")
+	if (agg1 != "Outcome" && agg2 != "Outcome") selections <- append(selections, "Outcome")
 	df1m <- select_and_summarize(usedf, cols, selections)
 	died <- df1m[df1m$Outcome == "Died",]
 	psdfm <- calculate_pct_and_sig(died, cols, selections)
@@ -453,20 +453,20 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 
 	############################################
 	# set the patterns
-	div2_patterns <- c("None" = "none")
-	if (div2 != "None") div2_patterns <- set_fill_patterns(outdf, div2)
+	agg2_patterns <- c("None" = "none")
+	if (agg2 != "None") agg2_patterns <- set_fill_patterns(outdf, agg2)
 	
-	return(list("df" = outdf, "dfm" = outdfm, "patterns" = div2_patterns))
+	return(list("df" = outdf, "dfm" = outdfm, "patterns" = agg2_patterns))
 
 }
 
-single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1){
-	f <- ggplot(usedf, aes_string(fill=div1,  y="percent", x=plot_type)) + 
+single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
+	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		labs(x = plot_type, y = "Overall Percentage")
 		#labs(x = "", y = "Overall Percentage")
 
-	fm <- ggplot(usedfm, aes_string(fill=div1,  y="percent", x=plot_type)) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		#labs(x = plot_type, y = "Mortality Percentage")	
 		labs(x = "", y = "Mortality Percentage")	
@@ -474,9 +474,9 @@ single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1){
 	return(list("f" = f, "fm" = fm))
 }
 
-double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2_patterns){
+double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2_patterns){
 
-	f <- ggplot(usedf, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
+	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, y="percent", x=plot_type)) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
@@ -484,13 +484,13 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2
 					   pattern_density = 0.1,
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
-		scale_pattern_manual(values = div2_patterns) +
-		labs(x = plot_type, y = "Overall Percentage", pattern = div2) + 
-		#labs(x = "", y = "Overall Percentage", pattern = div2) + 
+		scale_pattern_manual(values = agg2_patterns) +
+		labs(x = plot_type, y = "Overall Percentage", pattern = agg2) + 
+		#labs(x = "", y = "Overall Percentage", pattern = agg2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 	
-	fm <- ggplot(usedfm, aes_string(fill=div1, pattern=div2, y="percent", x=plot_type)) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, y="percent", x=plot_type)) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
@@ -498,21 +498,21 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2
 					   pattern_density = 0.1,
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
-		scale_pattern_manual(values = div2_patterns) +
-		#labs(x = plot_type, y = "Mortality Percentage", pattern = div2) + 
-		labs(x = "", y = "Mortality Percentage", pattern = div2) + 
+		scale_pattern_manual(values = agg2_patterns) +
+		#labs(x = plot_type, y = "Mortality Percentage", pattern = agg2) + 
+		labs(x = "", y = "Mortality Percentage", pattern = agg2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 
 	return(list("f" = f, "fm" = fm))	
 }
 
-generate_bar_plot <- function(usedf, plot_type, cols, div1, div2, range1, range2){
+generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2){
 
-	bardf = prep_bar_chart_data(usedf, plot_type, cols, div1, div2)
+	bardf = prep_bar_chart_data(usedf, plot_type, cols, agg1, agg2)
 	usedf1 = bardf$df
 	usedf1m = bardf$dfm
-	div2_patterns = bardf$patterns
+	agg2_patterns = bardf$patterns
 
 	# create the plot
 
@@ -531,14 +531,14 @@ generate_bar_plot <- function(usedf, plot_type, cols, div1, div2, range1, range2
 	if (is.null(range2$y)) range2$y <- c(0, 1.1*max((usedf1m$percent + usedf1m$sig_percent)))
 
 	# I don't think there's a clean way to do this without an if statement
-	ifelse(div2 == "None",
-		fig <- single_aggregate_bar_plot(usedf1, usedf1m, plot_type, div1),
-		fig <- double_aggregate_bar_plot(usedf1, usedf1m, plot_type, div1, div2, div2_patterns)
+	ifelse(agg2 == "None",
+		fig <- single_aggregate_bar_plot(usedf1, usedf1m, plot_type, agg1),
+		fig <- double_aggregate_bar_plot(usedf1, usedf1m, plot_type, agg1, agg2, agg2_patterns)
 	)
 
 	# these are common to either type of plot so can use here (outside of if statement)
 	f1 <- fig$f +  
-		scale_fill_brewer(palette = colors[[div1]]) +
+		scale_fill_brewer(palette = colors[[agg1]]) +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
 		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
 		theme_bw() + 
@@ -546,7 +546,7 @@ generate_bar_plot <- function(usedf, plot_type, cols, div1, div2, range1, range2
 		theme(legend.position = "bottom")
 
 	f1m <- fig$fm +  
-		scale_fill_brewer(palette = colors[[div1]]) +
+		scale_fill_brewer(palette = colors[[agg1]]) +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
 		coord_cartesian(xlim = range2$x, ylim = range2$y, expand = FALSE) + 
 		theme_bw() + 
