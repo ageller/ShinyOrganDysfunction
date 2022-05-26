@@ -187,23 +187,41 @@ ui <- fluidPage(
 		h4(textOutput("info")),
 
 		# plots (Note that the legend changes the size; so even making them both same height is not exact)
-		plotOutput("life_support_bar_plot_mortality",
-			height = "350px",
-			width = "100%",
-			brush = brushOpts(
-				id = "life_support_bar_plot_mortality_brush",
-				resetOnNew = TRUE
-			)
+		div(
+			style = "position:relative",
+			plotOutput("life_support_bar_plot_mortality",
+				height = "350px",
+				width = "100%",
+				hover = hoverOpts(
+					id = "life_support_bar_plot_mortality_hover",
+					delay = 10,
+					delayType = "debounce"
+				),
+				brush = brushOpts(
+					id = "life_support_bar_plot_mortality_brush",
+					resetOnNew = TRUE
+				),
+			),
+			uiOutput("life_support_bar_plot_mortality_hover_info")
 		),
 
-		plotOutput("life_support_bar_plot_overall",
-			height = "300px",
-			width = "100%",
-			brush = brushOpts(
-				id = "life_support_bar_plot_overall_brush",
-				resetOnNew = TRUE
-			)
-		),
+		div(
+			style = "position:relative",
+			plotOutput("life_support_bar_plot_overall",
+				height = "300px",
+				width = "100%",
+				hover = hoverOpts(
+					id = "life_support_bar_plot_overall_hover",
+					delay = 10,
+					delayType = "debounce"
+				),
+				brush = brushOpts(
+					id = "life_support_bar_plot_overall_brush",
+					resetOnNew = TRUE
+				)
+			),
+			uiOutput("life_support_bar_plot_overall_hover_info"),
+		)
 
 
 
@@ -317,17 +335,60 @@ server <- function(input, output) {
 	})
 
 	# set the output for the plots
+	output$life_support_bar_plot_mortality <- renderPlot({
+		input$updatePlot
+		isolate({
+			plots$mortality
+		})
+	})
 	output$life_support_bar_plot_overall <- renderPlot({
 		input$updatePlot
 		isolate({
 			plots$overall
 		})
 	})
-	output$life_support_bar_plot_mortality <- renderPlot({
-		input$updatePlot
-		isolate({
-			plots$mortality
-		})
+
+
+	# tooltips
+	# https://shiny.rstudio.com/gallery/plot-interaction-basic.html
+	# https://gitlab.com/-/snippets/16220
+	output$life_support_bar_plot_mortality_hover_info <- renderUI({
+		hover <- input$life_support_bar_plot_mortality_hover
+		if (is.numeric(hover$y)){
+
+			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+							"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+
+			# actual tooltip created as wellPanel
+			wellPanel(
+				style = style,
+				div(
+					HTML(
+						paste(format(round(hover$y, 2), nsmall = 2), "%")
+					)
+				)
+
+			)
+		}
+	})
+	output$life_support_bar_plot_overall_hover_info <- renderUI({
+		hover <- input$life_support_bar_plot_overall_hover
+		if (is.numeric(hover$y)){
+
+			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+							"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+
+			# actual tooltip created as wellPanel
+			wellPanel(
+				style = style,
+				div(
+					HTML(
+						paste(format(round(hover$y, 2), nsmall = 2), "%")
+					)
+				)
+
+			)
+		}
 	})
 
 
