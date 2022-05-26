@@ -64,8 +64,6 @@ for (cc in organs){
 	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
 }
 
-usedf <- df
-
 # define standard colors for each aggregate
 colors = c("Age_Group" = "Blues", 
 			"Outcome" = "Reds",
@@ -79,6 +77,10 @@ colors = c("Age_Group" = "Blues",
 patterns <- c("none", "stripe", "crosshatch", "circle", "stripe", "crosshatch", "stripe")
 pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 #patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
+
+# number of digits to show for numerical text
+ndigits <- 1
+
 
 # Define UI 
 ui <- fluidPage(
@@ -203,8 +205,7 @@ ui <- fluidPage(
 	# Main panel for displaying outputs 
 	mainPanel(
 
-		# text describing plot (and debugging) 
-		#p(textOutput("debug")),
+		# text describing plot 
 		h3(textOutput("plot_title")),
 
 		p("To zoom, click and drag over the desired area to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button in the left panel to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
@@ -258,26 +259,19 @@ ui <- fluidPage(
 
 # Define server logic 
 server <- function(input, output) {
+	# generate two separate plots, each will be zoomable
+	ranges_overall <- reactiveValues(x = NULL, y = NULL)
+	ranges_mortality <- reactiveValues(x = NULL, y = NULL)
+	plots <- reactiveValues(overall = NULL, mortality = NULL, summary = NULL)
 
-	# for debugging
-	debugging <- reactive({
-		#paste(input$agg1, input$agg2, input$additionalCheckboxes)
-		paste(input$technologyDependenceCheckbox)
-	})
-	output$debug <- renderText({
-		input$updatePlot
-		isolate({
-			debugging()
-		})
-	})
 
 
 	# Plot title
-	plot_title <- reactive({
+	plot_title <- function(){
 		txt <- paste("Life support type aggregated by",str_replace(input$agg1,"_", " "))
 		if (input$agg2 != "None") txt <- paste(txt, "and", str_replace(input$agg2,"_", " "))
-		txt
-	})
+		return(txt)
+	}
 	output$plot_title <- renderText({
 		input$updatePlot
 		isolate({
@@ -285,25 +279,10 @@ server <- function(input, output) {
 		})
 	})
 
-	# Summary stats
-	summary_table <- reactive({
-		div(
-			hr(style = "border-top: 1px solid #000000;"),
-			HTML(
-				paste0("<span style='font-size:20px'><b>Summary Statistics</b></span><br/>",
-					"<b>Total selected Patients</b> : ",nrow(usedf))
-			)
-		)
-	})
-	output$summary_table <- renderUI({
-		input$updatePlot
-		isolate({
-			summary_table()
-		})
-	})
+
 
 	# function to compile all the selections and apply them
-	selectData <- reactive({
+	selectData <- function(){
 		selections <- list("Age_Group" = input$AgeGroupCheckbox,
 			"Gender" = input$GenderCheckbox,
 			"Season_Admission" = input$SeasonCheckbox,
@@ -317,18 +296,13 @@ server <- function(input, output) {
 		for (oo in organs){
 			selections[[oo]] <- c(input[[paste0(oo, "Checkbox")]])
 		}
-		#print(selections)
 
-		applyDataSelections(df, selections)
-	})
+		return(applyDataSelections(df, selections))
+	}
 
-	# generate two separate plots, each will be zoomable
-	ranges_overall <- reactiveValues(x = NULL, y = NULL)
-	ranges_mortality <- reactiveValues(x = NULL, y = NULL)
-	plots <- reactiveValues(overall = NULL, mortality = NULL)
 
 	# function to create the plots
-	create_plot <- reactive({
+	create_plot <- function(usedf){
 		# check if there is any brushing for zoom
 		brush_overall <- input$life_support_bar_plot_overall_brush
 		if (!is.null(brush_overall)) {
@@ -352,19 +326,37 @@ server <- function(input, output) {
 
 		generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$agg1, input$agg2, ranges_overall, ranges_mortality)
 
-	})
+	}
+
+	# function to create the summary stats text
+	summary_table <- function(usedf){
+
+		died <- usedf[usedf$Outcome == "Died",]
+		return(div(
+			hr(style = "border-top: 1px solid #000000;"),
+			HTML(
+				paste0("<span style='font-size:20px'><b>Summary Statistics</b></span><br/>",
+					"<b>Total selected patients</b> : ",nrow(usedf),"<br/>",
+					"<b>Percent of total population</b> : ",format(round(100.*nrow(usedf)/nrow(df), ndigits), nsmall = ndigits),"%<br/>",
+					"<b>Total selected patients who died</b> : ",nrow(died),"<br/>",
+					"<b>Percent mortality of selected patients</b> : ",format(round(100.*nrow(died)/nrow(usedf), ndigits), nsmall = ndigits), "%")
+				)
+			)
+		)
+	}
 
 	# when button is clicked, select the data and update plots object
 	observe({
 		input$updatePlot 
 		isolate({
 			# take the selection on the data (<<- is "super assign" to update the global variable)
-			usedf <<- selectData()
+			usedf <- selectData()
 
-			# create the plots and save them in the plots object
-			foo <- create_plot()
+			# create the plots and table and save them in the plots object
+			foo <- create_plot(usedf)
 			plots$overall <- foo$overall
 			plots$mortality <- foo$mortality
+			plots$summary <- summary_table(usedf)
 
 		})
 	})
@@ -384,6 +376,13 @@ server <- function(input, output) {
 	})
 
 
+	output$summary_table <- renderUI({
+		input$updatePlot
+		isolate({
+			plots$summary
+		})
+	})
+
 	# tooltips
 	# https://shiny.rstudio.com/gallery/plot-interaction-basic.html
 	# https://gitlab.com/-/snippets/16220
@@ -399,7 +398,7 @@ server <- function(input, output) {
 				style = style,
 				div(
 					HTML(
-						paste(format(round(hover$y, 2), nsmall = 2), "%")
+						paste(format(round(hover$y, ndigits), nsmall = ndigits), "%")
 					)
 				)
 
@@ -418,7 +417,7 @@ server <- function(input, output) {
 				style = style,
 				div(
 					HTML(
-						paste(format(round(hover$y, 2), nsmall = 2), "%")
+						paste(format(round(hover$y, ndigits), nsmall = ndigits), "%")
 					)
 				)
 
