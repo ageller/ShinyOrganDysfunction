@@ -55,6 +55,16 @@ for (cc in organs){
 
 usedf <- df
 
+# define standard colors for each aggregate
+colors = c("Age_Group" = "Blues", 
+			"Outcome" = "Reds",
+			"Season_Admission" = "Greens",
+			"Gender" = "Oranges",
+			"Malignancy" = "Purples",
+			"Transplant" = "PuRd",
+			"Technology_Dependence" = "YlOrBr"
+			)
+
 # Define UI 
 ui <- fluidPage(
 
@@ -172,7 +182,16 @@ ui <- fluidPage(
 		#p(textOutput("debug")),
 		h4(textOutput("info")),
 
-		# plots (slightly different sizes to account for the legend?)
+		# plots (Note that the legend changes the size; so even making them both same height is not exact)
+		plotOutput("life_support_bar_plot_mortality",
+			height = "350px",
+			width = "100%",
+			brush = brushOpts(
+				id = "life_support_bar_plot_mortality_brush",
+				resetOnNew = TRUE
+			)
+		),
+
 		plotOutput("life_support_bar_plot_overall",
 			height = "300px",
 			width = "100%",
@@ -182,14 +201,7 @@ ui <- fluidPage(
 			)
 		),
 
-		plotOutput("life_support_bar_plot_mortality",
-			height = "350px",
-			width = "100%",
-			brush = brushOpts(
-				id = "life_support_bar_plot_mortality_brush",
-				resetOnNew = TRUE
-			)
-		)
+
 
 
 	)
@@ -451,12 +463,13 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, div1, div2){
 single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1){
 	f <- ggplot(usedf, aes_string(fill=div1,  y="percent", x=plot_type)) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
-		#labs(x = plot_type, y = "Percentage")
-		labs(x = "", y = "Percentage")
+		labs(x = plot_type, y = "Overall Percentage")
+		#labs(x = "", y = "Overall Percentage")
 
 	fm <- ggplot(usedfm, aes_string(fill=div1,  y="percent", x=plot_type)) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
-		labs(x = plot_type, y = "Mortality Percentage")	
+		#labs(x = plot_type, y = "Mortality Percentage")	
+		labs(x = "", y = "Mortality Percentage")	
 
 	return(list("f" = f, "fm" = fm))
 }
@@ -472,8 +485,8 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
 		scale_pattern_manual(values = div2_patterns) +
-		#labs(x = plot_type, y = "Overall Percentage", pattern = div2) + 
-		labs(x = "", y = "Overall Percentage", pattern = div2) + 
+		labs(x = plot_type, y = "Overall Percentage", pattern = div2) + 
+		#labs(x = "", y = "Overall Percentage", pattern = div2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 	
@@ -486,7 +499,8 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, div1, div2, div2
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
 		scale_pattern_manual(values = div2_patterns) +
-		labs(x = plot_type, y = "Mortality Percentage", pattern = div2) + 
+		#labs(x = plot_type, y = "Mortality Percentage", pattern = div2) + 
+		labs(x = "", y = "Mortality Percentage", pattern = div2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 
@@ -524,16 +538,20 @@ generate_bar_plot <- function(usedf, plot_type, cols, div1, div2, range1, range2
 
 	# these are common to either type of plot so can use here (outside of if statement)
 	f1 <- fig$f +  
-		scale_fill_brewer(palette = "Blues") +
+		scale_fill_brewer(palette = colors[[div1]]) +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
 		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
-		theme_bw() + theme(legend.position = "none")
+		theme_bw() + 
+		#theme(legend.position = "none")
+		theme(legend.position = "bottom")
 
 	f1m <- fig$fm +  
-		scale_fill_brewer(palette = "Blues") +
+		scale_fill_brewer(palette = colors[[div1]]) +
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.2, position=position_dodge(.9)) +
 		coord_cartesian(xlim = range2$x, ylim = range2$y, expand = FALSE) + 
-		theme_bw() + theme(legend.position = "bottom")
+		theme_bw() + 
+		#theme(legend.position = "bottom")
+		theme(legend.position = "none")
 
 
 	return(list("overall" = f1, "mortality" = f1m))
