@@ -66,51 +66,67 @@ ui <- fluidPage(
 
 		h4("1. Select the subset of the data to include."),
 		tabsetPanel(
+
 			tabPanel("Age Group",
-				checkboxGroupInput("AgeGroupCheckbox", "",
-					ages,
-					selected = ages
-				),
+				div(
+					style = "height:200px;overflow-y:auto;",
+					checkboxGroupInput("AgeGroupCheckbox", "",
+						ages,
+						selected = ages
+					)
+				)
 			),
 			tabPanel("Gender",
-				checkboxGroupInput("GenderCheckbox", "",
-					genders,
-					selected = genders
-				),
+				div(
+					style = "height:200px;overflow-y:auto;",
+					checkboxGroupInput("GenderCheckbox", "",
+						genders,
+						selected = genders
+					)
+				)
 			),
 			tabPanel("Season",
-				checkboxGroupInput("SeasonCheckbox", "",
-					seasons,
-					selected = seasons
-				),
+				div(
+					style = "height:200px;overflow-y:auto;",
+					checkboxGroupInput("SeasonCheckbox", "",
+						seasons,
+						selected = seasons
+					)
+				)
 			),
 			tabPanel("Organs",
-				p("Patient had organ failure on any day from any criteria:"),
-				lapply(1:length(organs), function(i) {
-					oo <- organs[i]
-					radioButtons(paste0(oo, "Checkbox"), paste("Had", oo, "failure"),
-						choices = c("Any", "No", "Yes"),
+				div(
+					style = "height:200px;overflow-y:auto;",
+					p("Patient had organ failure on any day from any criteria:"),
+					lapply(1:length(organs), function(i) {
+						oo <- organs[i]
+						radioButtons(paste0(oo, "Checkbox"), paste("Had", oo, "failure"),
+							choices = c("Any", "No", "Yes"),
+							selected = "Any",
+							inline = TRUE
+						)
+					})
+				)
+			),
+			tabPanel("Misc.",
+				div(
+					style = "height:200px;overflow-y:auto;",
+					radioButtons("malignancyCheckbox", "Had Malignancy",
+						append("Any", malignancies),
+						selected = "Any",
+						inline = TRUE
+					),
+					radioButtons("transplantCheckbox", "Had Tranplant",
+						append("Any", transplants),
+						selected = "Any",
+						inline = TRUE
+					),
+					radioButtons("technologyDependenceCheckbox", "Had Technology Dependence",
+						append("Any", technologyDependencies),
 						selected = "Any",
 						inline = TRUE
 					)
-				})
-			),
-			tabPanel("Misc.",
-				radioButtons("malignancyCheckbox", "Had Malignancy",
-					append("Any", malignancies),
-					selected = "Any",
-					inline = TRUE
-				),
-				radioButtons("transplantCheckbox", "Had Tranplant",
-					append("Any", transplants),
-					selected = "Any",
-					inline = TRUE
-				),
-				radioButtons("technologyDependenceCheckbox", "Had Technology Dependence",
-					append("Any", technologyDependencies),
-					selected = "Any",
-					inline = TRUE
-				),
+				)
 			),
 		),
 
