@@ -2,6 +2,7 @@
 
 library(dplyr)
 library(tidyr)
+library(stringr)
 
 library(ggplot2)
 library(ggpattern)
@@ -204,7 +205,7 @@ ui <- fluidPage(
 
 		# text describing plot (and debugging) 
 		#p(textOutput("debug")),
-		h3(textOutput("info")),
+		h3(textOutput("plot_title")),
 
 		p("To zoom, click and drag over the desired area to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button in the left panel to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
 
@@ -224,7 +225,7 @@ ui <- fluidPage(
 					resetOnNew = TRUE
 				),
 			),
-			uiOutput("life_support_bar_plot_mortality_hover_info")
+			htmlOutput("life_support_bar_plot_mortality_hover_info")
 		),
 
 		div(
@@ -242,10 +243,11 @@ ui <- fluidPage(
 					resetOnNew = TRUE
 				)
 			),
-			uiOutput("life_support_bar_plot_overall_hover_info"),
-		)
+			htmlOutput("life_support_bar_plot_overall_hover_info"),
+		),
 
 
+		htmlOutput("summary_table"),
 
 
 	)
@@ -270,26 +272,35 @@ server <- function(input, output) {
 	})
 
 
-	# information about the plot
-	# 
-	text_info <- reactive({
+	# Plot title
+	plot_title <- reactive({
+		txt <- paste("Life support type aggregated by",str_replace(input$agg1,"_", " "))
+		if (input$agg2 != "None") txt <- paste(txt, "and", str_replace(input$agg2,"_", " "))
+		txt
+	})
+	output$plot_title <- renderText({
 		input$updatePlot
 		isolate({
-			txt <- paste("Life support type aggregated by",input$agg1)
-			if (input$agg2 != "None") txt <- paste(txt, "and", input$agg2)
-			txt
+			plot_title()
 		})
 	})
 
-
-	output$info <- renderText({
+	# Summary stats
+	summary_table <- reactive({
+		div(
+			hr(style = "border-top: 1px solid #000000;"),
+			HTML(
+				paste0("<span style='font-size:20px'><b>Summary Statistics</b></span><br/>",
+					"<b>Total selected Patients</b> : ",nrow(usedf))
+			)
+		)
+	})
+	output$summary_table <- renderUI({
 		input$updatePlot
 		isolate({
-			text_info()
+			summary_table()
 		})
 	})
-
-
 
 	# function to compile all the selections and apply them
 	selectData <- reactive({
