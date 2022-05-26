@@ -204,7 +204,9 @@ ui <- fluidPage(
 
 		# text describing plot (and debugging) 
 		#p(textOutput("debug")),
-		h4(textOutput("info")),
+		h3(textOutput("info")),
+
+		p("To zoom, click and drag over the desired area to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button in the left panel to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
 
 		# plots (Note that the legend changes the size; so even making them both same height is not exact)
 		div(
