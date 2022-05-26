@@ -28,8 +28,18 @@ df <- df %>%
 	mutate(Technology_Dependence = case_when(
 		Technology_Dependence == 0 ~ "No",
 		Technology_Dependence == 1 ~ "Yes",
-	)) 
-
+	)) %>%
+# MOD (“multiple organ dysfunction”) criteria
+# “MOD on day 1” : Having 2 or more (out of 9) organ dysfunctions based on the PODIUM criteria on day 1 
+    mutate(MOD1 = case_when(
+        PODIUM_Count_Day1 < 2 ~ "No",
+        PODIUM_Count_Day1 >= 2 ~ "Yes",
+    )) %>%
+#“MOD by day 3” : Having 2 or more (out of 9) organ dysfunctions based on the PODIUM criteria at any point during days 1 to 3.
+    mutate(MOD3 = case_when(
+        (PODIUM_Count_Day1 < 2 & PODIUM_Count_Day2 < 2 & PODIUM_Count_Day3 < 2) ~ "No",
+        (PODIUM_Count_Day1 >= 2 | PODIUM_Count_Day2 >= 2 | PODIUM_Count_Day3 >= 2) ~ "Yes",
+    ))
 
 # create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
@@ -49,8 +59,8 @@ organs <- organs[!organs %in% 'Count']
 
 # for each organ type create a new column that has 0 or 1 if any day had that failure
 for (cc in organs){
-    foo <- select(df, contains(cc))
-    df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
+	foo <- select(df, contains(cc))
+	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
 }
 
 usedf <- df
@@ -111,7 +121,17 @@ ui <- fluidPage(
 			tabPanel("Organs",
 				div(
 					style = "height:200px;overflow-y:auto;",
-					p("Patient had organ failure on any day from any criteria:"),
+					radioButtons("MOD1Checkbox", "MOD on day 1",
+						choices = c("Any", "No", "Yes"),
+						selected = "Any",
+						inline = TRUE
+					),
+					radioButtons("MOD3Checkbox", "MOD by day 3",
+						choices = c("Any", "No", "Yes"),
+						selected = "Any",
+						inline = TRUE
+					),
+					p("The buttons below select patients with a specific organ failure on any day from any criteria."),
 					lapply(1:length(organs), function(i) {
 						oo <- organs[i]
 						radioButtons(paste0(oo, "Checkbox"), paste("Had", oo, "failure"),
@@ -276,7 +296,9 @@ server <- function(input, output) {
 			"Season_Admission" = input$SeasonCheckbox,
 			"Malignancy" = input$malignancyCheckbox,
 			"Transplant" = input$transplantCheckbox,
-			"Technology_Dependence" = input$technologyDependenceCheckbox
+			"Technology_Dependence" = input$technologyDependenceCheckbox,
+			"MOD1" = input$MOD1Checkbox,
+			"MOD3" = input$MOD3Checkbox
 			)
 
 		for (oo in organs){
@@ -323,8 +345,8 @@ server <- function(input, output) {
 	observe({
 		input$updatePlot 
 		isolate({
-			# take the selection on the data
-			usedf <- selectData()
+			# take the selection on the data (<<- is "super assign" to update the global variable)
+			usedf <<- selectData()
 
 			# create the plots and save them in the plots object
 			foo <- create_plot()
