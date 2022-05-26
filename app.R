@@ -65,6 +65,10 @@ colors = c("Age_Group" = "Blues",
 			"Technology_Dependence" = "YlOrBr"
 			)
 
+patterns <- c("none", "stripe", "crosshatch", "circle", "stripe", "crosshatch", "stripe")
+pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
+#patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
+
 # Define UI 
 ui <- fluidPage(
 
@@ -420,14 +424,14 @@ cbind_and_pivot <- function(psdf, plot_type, selections){
 }
 
 set_fill_patterns <- function(usedf, col){
-	#patterns <- c("none", "stripe", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
-	patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
 
-	col_vals <- unlist(unique(usedf[col]), use.names = FALSE)
-	col_patterns <- patterns[(1:length(col_vals))]
-	names(col_patterns) <- col_vals
-	
-	return(col_patterns)
+    col_vals <- unlist(unique(usedf[col]), use.names = FALSE)
+    col_patterns <- patterns[(1:length(col_vals))]
+    names(col_patterns) <- col_vals
+    col_angles <- pattern_angles[(1:length(col_vals))]
+    names(col_angles) <- col_vals
+
+    return(list("patterns" = col_patterns, "angles" = col_angles))
 }
 
 prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
@@ -476,29 +480,29 @@ single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
 
 double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2_patterns){
 
-	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, y="percent", x=plot_type)) + 
+	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type)) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
-					   pattern_angle = 45,
 					   pattern_density = 0.1,
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
-		scale_pattern_manual(values = agg2_patterns) +
+		scale_pattern_manual(values = agg2_patterns$patterns) +
+		scale_pattern_angle_manual(values = agg2_patterns$angles) +
 		labs(x = plot_type, y = "Overall Percentage", pattern = agg2) + 
 		#labs(x = "", y = "Overall Percentage", pattern = agg2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 	
-	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, y="percent", x=plot_type)) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type)) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
-					   pattern_angle = 45,
 					   pattern_density = 0.1,
 					   pattern_spacing = 0.025,
 					   pattern_key_scale_factor = 0.6) +
-		scale_pattern_manual(values = agg2_patterns) +
+		scale_pattern_manual(values = agg2_patterns$patterns) +
+		scale_pattern_angle_manual(values = agg2_patterns$angles) +
 		#labs(x = plot_type, y = "Mortality Percentage", pattern = agg2) + 
 		labs(x = "", y = "Mortality Percentage", pattern = agg2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
