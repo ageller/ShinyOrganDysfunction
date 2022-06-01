@@ -32,15 +32,15 @@ df <- df %>%
 	)) %>%
 # MOD (“multiple organ dysfunction”) criteria
 # “MOD on day 1” : Having 2 or more (out of 9) organ dysfunctions based on the PODIUM criteria on day 1 
-    mutate(MOD1 = case_when(
-        PODIUM_Count_Day1 < 2 ~ "No",
-        PODIUM_Count_Day1 >= 2 ~ "Yes",
-    )) %>%
+	mutate(MOD1 = case_when(
+		PODIUM_Count_Day1 < 2 ~ "No",
+		PODIUM_Count_Day1 >= 2 ~ "Yes",
+	)) %>%
 #“MOD by day 3” : Having 2 or more (out of 9) organ dysfunctions based on the PODIUM criteria at any point during days 1 to 3.
-    mutate(MOD3 = case_when(
-        (PODIUM_Count_Day1 < 2 & PODIUM_Count_Day2 < 2 & PODIUM_Count_Day3 < 2) ~ "No",
-        (PODIUM_Count_Day1 >= 2 | PODIUM_Count_Day2 >= 2 | PODIUM_Count_Day3 >= 2) ~ "Yes",
-    ))
+	mutate(MOD3 = case_when(
+		(PODIUM_Count_Day1 < 2 & PODIUM_Count_Day2 < 2 & PODIUM_Count_Day3 < 2) ~ "No",
+		(PODIUM_Count_Day1 >= 2 | PODIUM_Count_Day2 >= 2 | PODIUM_Count_Day3 >= 2) ~ "Yes",
+	))
 
 # create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
@@ -446,47 +446,49 @@ select_and_summarize <- function(usedf, cols, selections) {
 	# select frome a dataframe and summarize elements for bar chart
 
 	Nsample <- "Nsample"
-	Ntotal <- "Ntotal"
 
 	# group the data to get the total number in each subset
 	out <- usedf %>% 
 		group_by_at(selections) %>% 
 		mutate(Nsample = n()) %>%
-		group_by_at(append(selections, Nsample)) %>%
-		mutate(Ntotal = 0) %>%
-		group_by_at(append(selections, c(Nsample, Ntotal))) %>%
+		group_by_at(append(selections, c(Nsample))) %>%
 		summarise_at(vars(one_of(cols)), sum, na.rm=TRUE)
-	
-	# get the total number using just agg1 (I don't think there's a simple way to do this in the above command)
-	agg1 <- selections[1]
-	agg1_values = unlist(unique(out[agg1]), use.names = FALSE)
-	for (dd in agg1_values){
-		out[out[agg1] == dd,]$Ntotal <- sum(out[out[agg1] == dd,]$Nsample)
-	}
-	
+
 	return(out)
 
 }
 
-calculate_pct_and_sig <- function(usedf, cols, selections) {
-	# calculate percentages and errors
-	pctdf <- usedf
-	sigdf <- usedf
+calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
+	
+	if (mortality){
+		# We want the denominator to be the sum of all elements for all selections except the last in the list
+		lived <- usedf[usedf$Outcome == "Lived",]
+		died <- usedf[usedf$Outcome == "Died",]
+		
+		# calculate percentages and errors
+		pctdf <- died
+		sigdf <- died
+		
+	} else {
 
-	# divide every column after Ntotal by the Ntotal value to get the percentage
-	ncol <- length(selections) + 2
-	pctdf[, -(1:ncol)] <- sweep(100.*pctdf[, -(1:ncol)], 1, pctdf$Ntotal, "/")
+		# calculate percentages and errors
+		pctdf <- usedf
+		sigdf <- usedf
+	}
+	
+	# calculate the percentage and error (using error propagation)
+	# for mortality, we want the denominator to be the sum of all elements for all selections except the last in the list
+	# for non-mortality, simply use the Nsample value for the denominator
 
-	# calculate the error using error propagation
 	for (cc in cols){
-		num <- usedf[cc]
-		den <- usedf$Ntotal
+		num <- pctdf[cc]
+		ifelse(mortality, den <- lived[cc] + died[cc], den <- usedf$Nsample)
+		pctdf[cc] <- 100.*( num/den )
 		sigdf[cc] <- 100.*( num/den**2. + (num/den**2.)**2.*den )**0.5
 		# assuming no error on denominator
 		#sigdf1[cc] <- 100.*num**0.5/den
 	}
-
-
+	
 	return(list("pct" = pctdf, "sig" = sigdf))
 }
 
@@ -496,16 +498,16 @@ cbind_and_pivot <- function(psdf, plot_type, selections){
 
 	pctdf <- psdf$pct
 	sigdf <- psdf$sig
-	
+
 	out <- pctdf
 	out <- pivot_longer(data = out,
-	   cols = -append(selections, c("Nsample", "Ntotal")),
+	   cols = -append(selections, c("Nsample")),
 	   names_to = plot_type,
 	   values_to = "percent")
 
 
 	tmpdf <- pivot_longer(data = sigdf,
-	   cols = -append(selections, c("Nsample", "Ntotal")),
+	   cols = -append(selections, c("Nsample")),
 	   names_to = plot_type,
 	   values_to = "sig_percent")
 
@@ -513,24 +515,23 @@ cbind_and_pivot <- function(psdf, plot_type, selections){
 
 	# select the columns we want
 	out <- out[, append(selections, c(plot_type, "percent", "sig_percent"))]
-	
+
 	return(out)
 
 }
 
 set_fill_patterns <- function(usedf, col){
 
-    col_vals <- unlist(unique(usedf[col]), use.names = FALSE)
-    col_patterns <- patterns[(1:length(col_vals))]
-    names(col_patterns) <- col_vals
-    col_angles <- pattern_angles[(1:length(col_vals))]
-    names(col_angles) <- col_vals
+	col_vals <- unlist(unique(usedf[col]), use.names = FALSE)
+	col_patterns <- patterns[(1:length(col_vals))]
+	names(col_patterns) <- col_vals
+	col_angles <- pattern_angles[(1:length(col_vals))]
+	names(col_angles) <- col_vals
 
-    return(list("patterns" = col_patterns, "angles" = col_angles))
+	return(list("patterns" = col_patterns, "angles" = col_angles))
 }
 
 prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
-
 
 	############################################
 	# percentage within each group given the selections
@@ -538,15 +539,14 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 	if (agg2 != "None") selections <- append(selections, agg2)
 
 	df1 <- select_and_summarize(usedf, cols, selections)
-	psdf <- calculate_pct_and_sig(df1, cols, selections)
+	psdf <- calculate_pct_and_sig(df1, cols, selections, FALSE)
 	outdf <- cbind_and_pivot(psdf, plot_type, selections)
 
 	############################################
 	# mortality percentage given the selections
 	if (agg1 != "Outcome" && agg2 != "Outcome") selections <- append(selections, "Outcome")
 	df1m <- select_and_summarize(usedf, cols, selections)
-	died <- df1m[df1m$Outcome == "Died",]
-	psdfm <- calculate_pct_and_sig(died, cols, selections)
+	psdfm <- calculate_pct_and_sig(df1m, cols, selections, TRUE)
 	outdfm <- cbind_and_pivot(psdfm, plot_type, selections)
 
 
@@ -554,7 +554,7 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 	# set the patterns
 	agg2_patterns <- c("None" = "none")
 	if (agg2 != "None") agg2_patterns <- set_fill_patterns(outdf, agg2)
-	
+
 	return(list("df" = outdf, "dfm" = outdfm, "patterns" = agg2_patterns))
 
 }
@@ -607,6 +607,7 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 }
 
 generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2){
+
 
 	bardf = prep_bar_chart_data(usedf, plot_type, cols, agg1, agg2)
 	usedf1 = bardf$df
