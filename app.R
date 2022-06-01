@@ -42,6 +42,13 @@ df <- df %>%
 		(PODIUM_Count_Day1 >= 2 | PODIUM_Count_Day2 >= 2 | PODIUM_Count_Day3 >= 2) ~ "Yes",
 	))
 
+# set all the relevant columns as factors
+factor_cols = c("Age_Group", "Outcome", "Season_Admission", "Gender", "Malignancy", "Transplant", "Technology_Dependence")
+for (ff in factor_cols){
+	df[, ff] <- as.factor(df[, ff])
+}
+
+
 # create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
 outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
@@ -77,6 +84,7 @@ colors = c("Age_Group" = "Blues",
 patterns <- c("none", "stripe", "crosshatch", "circle", "stripe", "crosshatch", "stripe")
 pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 #patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")
+
 
 # number of digits to show for numerical text
 ndigits <- 1
@@ -449,9 +457,9 @@ select_and_summarize <- function(usedf, cols, selections) {
 
 	# group the data to get the total number in each subset
 	out <- usedf %>% 
-		group_by_at(selections) %>% 
+		group_by_at(selections, .drop=FALSE) %>% 
 		mutate(Nsample = n()) %>%
-		group_by_at(append(selections, c(Nsample))) %>%
+		group_by_at(append(selections, c(Nsample)), .drop=FALSE) %>%
 		summarise_at(vars(one_of(cols)), sum, na.rm=TRUE)
 
 	return(out)
@@ -464,7 +472,7 @@ calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
 		# We want the denominator to be the sum of all elements for all selections except the last in the list
 		lived <- usedf[usedf$Outcome == "Lived",]
 		died <- usedf[usedf$Outcome == "Died",]
-		
+
 		# calculate percentages and errors
 		pctdf <- died
 		sigdf <- died
