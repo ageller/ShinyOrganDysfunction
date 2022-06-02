@@ -1,4 +1,6 @@
 # for tabs: https://shiny.rstudio.com/articles/tabsets.html
+library(shiny)
+library(shinyjs)
 
 library(dplyr)
 library(tidyr)
@@ -11,6 +13,17 @@ library(ggpubr)
 
 # start with the binary version
 df <- read.csv('data/od_viz_binary.csv')
+
+# rename columns?
+names(df)[names(df) == 'Mech_Ventilation'] <- 'Mechanical_Ventilation'
+# conversions to use late
+name_conversion <- c("Age_Group" = "Age Group", 
+				"Outcome" = "Outcome",
+				"Season_Admission" = "Season Admission",
+				"Gender" = "Gender",
+				"Malignancy" = "Malignancy",
+				"Transplant" = "Transplant",
+				"Technology_Dependence" = "Technology Dependence")
 
 # add a column to have strings for lived vs. died 
 df <- df %>%
@@ -59,7 +72,8 @@ transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
 technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
 
 # get the unique organ types
-foo <- colnames(select(df, contains("Day")))
+#foo <- colnames(select(df, contains("Day")))
+foo <- colnames(select(df, contains("PODIUM")))
 foo <- strsplit(foo, '_')
 foo <- sapply(foo,"[[", 2)
 organs <- unlist(unique(foo), use.names = FALSE)
@@ -90,8 +104,11 @@ pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 ndigits <- 1
 
 
+
 # Define UI 
 ui <- fluidPage(
+	# I need this for the reset button
+	useShinyjs(), 
 
 	# App title 
 	headerPanel("Pediatric Organ Dysfunction Explorer"),
@@ -104,7 +121,7 @@ ui <- fluidPage(
 
 			tabPanel("Age Group",
 				div(
-					style = "height:200px;overflow-y:auto;",
+					style = "height:300px;overflow-y:auto;",
 					checkboxGroupInput("AgeGroupCheckbox", "",
 						ages,
 						selected = ages
@@ -113,7 +130,7 @@ ui <- fluidPage(
 			),
 			tabPanel("Gender",
 				div(
-					style = "height:200px;overflow-y:auto;",
+					style = "height:300px;overflow-y:auto;",
 					checkboxGroupInput("GenderCheckbox", "",
 						genders,
 						selected = genders
@@ -122,7 +139,7 @@ ui <- fluidPage(
 			),
 			tabPanel("Season",
 				div(
-					style = "height:200px;overflow-y:auto;",
+					style = "height:300px;overflow-y:auto;",
 					checkboxGroupInput("SeasonCheckbox", "",
 						seasons,
 						selected = seasons
@@ -131,43 +148,44 @@ ui <- fluidPage(
 			),
 			tabPanel("Organs",
 				div(
-					style = "height:200px;overflow-y:auto;",
-					radioButtons("MOD1Checkbox", "MOD on day 1",
-						choices = c("Any", "No", "Yes"),
+					style = "height:300px;overflow-y:auto;",
+					p("All options in this tab are based on the PODIUM criteria."),
+					radioButtons("MOD1Radiobutton", "MOD on day 1",
+						choices = as.factor(c("Any", "No", "Yes")),
 						selected = "Any",
 						inline = TRUE
 					),
-					radioButtons("MOD3Checkbox", "MOD by day 3",
-						choices = c("Any", "No", "Yes"),
+					radioButtons("MOD3Radiobutton", "MOD by day 3",
+						choices = as.factor(c("Any", "No", "Yes")),
 						selected = "Any",
 						inline = TRUE
 					),
-					p("The buttons below select patients with a specific organ failure on any day from any criteria."),
+					p("The buttons below select patients with a specific organ failure on any day."),
 					lapply(1:length(organs), function(i) {
 						oo <- organs[i]
-						radioButtons(paste0(oo, "Checkbox"), paste("Had", oo, "failure"),
-							choices = c("Any", "No", "Yes"),
+						radioButtons(paste0(oo, "Radiobutton"), paste("Had", oo, "failure"),
+							choices = as.factor(c("Any", "No", "Yes")),
 							selected = "Any",
 							inline = TRUE
 						)
 					})
 				)
 			),
-			tabPanel("Misc.",
+			tabPanel("Comorbidities",
 				div(
-					style = "height:200px;overflow-y:auto;",
-					radioButtons("malignancyCheckbox", "Had Malignancy",
-						append("Any", malignancies),
+					style = "height:300px;overflow-y:auto;",
+					radioButtons("malignancyRadiobutton", "Had Malignancy",
+						append(as.factor("Any"), malignancies),
 						selected = "Any",
 						inline = TRUE
 					),
-					radioButtons("transplantCheckbox", "Had Tranplant",
-						append("Any", transplants),
+					radioButtons("transplantRadiobutton", "Had Tranplant",
+						append(as.factor("Any"), transplants),
 						selected = "Any",
 						inline = TRUE
 					),
-					radioButtons("technologyDependenceCheckbox", "Had Technology Dependence",
-						append("Any", technologyDependencies),
+					radioButtons("technologyDependenceRadiobutton", "Had Technology Dependence",
+						append(as.factor("Any"), technologyDependencies),
 						selected = "Any",
 						inline = TRUE
 					)
@@ -175,6 +193,7 @@ ui <- fluidPage(
 			),
 		),
 
+		actionButton("resetInputs", "Reset all Section 1 inputs"),
 
 		hr(style = "border-top: 1px solid #000000;"),
 		h4("2. Specify how to aggregate the data."),
@@ -207,7 +226,12 @@ ui <- fluidPage(
 		hr(style = "border-top: 1px solid #000000;"),
 		h4("3. Click the button below to update the plot."),
 		actionButton("updatePlot", "Update Plot"),
+
+		hr(style = "border-top: 1px solid #000000;"),
+
+		p("To zoom, click and drag over the desired area on the plot in the left panel to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button above to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
 	),
+
 
 
 	# Main panel for displaying outputs 
@@ -216,43 +240,43 @@ ui <- fluidPage(
 		# text describing plot 
 		h3(textOutput("plot_title")),
 
-		p("To zoom, click and drag over the desired area to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button in the left panel to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
+
 
 		# plots (Note that the legend changes the size; so even making them both same height is not exact)
 		div(
 			style = "position:relative",
-			plotOutput("life_support_bar_plot_mortality",
+			plotOutput("organ_support_bar_plot_mortality",
 				height = "350px",
 				width = "100%",
 				hover = hoverOpts(
-					id = "life_support_bar_plot_mortality_hover",
+					id = "organ_support_bar_plot_mortality_hover",
 					delay = 10,
 					delayType = "debounce"
 				),
 				brush = brushOpts(
-					id = "life_support_bar_plot_mortality_brush",
+					id = "organ_support_bar_plot_mortality_brush",
 					resetOnNew = TRUE
 				),
 			),
-			htmlOutput("life_support_bar_plot_mortality_hover_info")
+			htmlOutput("organ_support_bar_plot_mortality_hover_info")
 		),
 
 		div(
 			style = "position:relative",
-			plotOutput("life_support_bar_plot_overall",
+			plotOutput("organ_support_bar_plot_overall",
 				height = "300px",
 				width = "100%",
 				hover = hoverOpts(
-					id = "life_support_bar_plot_overall_hover",
+					id = "organ_support_bar_plot_overall_hover",
 					delay = 10,
 					delayType = "debounce"
 				),
 				brush = brushOpts(
-					id = "life_support_bar_plot_overall_brush",
+					id = "organ_support_bar_plot_overall_brush",
 					resetOnNew = TRUE
 				)
 			),
-			htmlOutput("life_support_bar_plot_overall_hover_info"),
+			htmlOutput("organ_support_bar_plot_overall_hover_info"),
 		),
 
 
@@ -276,8 +300,8 @@ server <- function(input, output) {
 
 	# Plot title
 	plot_title <- function(){
-		txt <- paste("Life support type aggregated by",str_replace(input$agg1,"_", " "))
-		if (input$agg2 != "None") txt <- paste(txt, "and", str_replace(input$agg2,"_", " "))
+		txt <- paste("Organ support type aggregated by",str_replace_all(input$agg1,"_", " "))
+		if (input$agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$agg2,"_", " "))
 		return(txt)
 	}
 	output$plot_title <- renderText({
@@ -294,15 +318,15 @@ server <- function(input, output) {
 		selections <- list("Age_Group" = input$AgeGroupCheckbox,
 			"Gender" = input$GenderCheckbox,
 			"Season_Admission" = input$SeasonCheckbox,
-			"Malignancy" = input$malignancyCheckbox,
-			"Transplant" = input$transplantCheckbox,
-			"Technology_Dependence" = input$technologyDependenceCheckbox,
-			"MOD1" = input$MOD1Checkbox,
-			"MOD3" = input$MOD3Checkbox
+			"Malignancy" = input$malignancyRadiobutton,
+			"Transplant" = input$transplantRadiobutton,
+			"Technology_Dependence" = input$technologyDependenceRadiobutton,
+			"MOD1" = input$MOD1Radiobutton,
+			"MOD3" = input$MOD3Radiobutton
 			)
 
 		for (oo in organs){
-			selections[[oo]] <- c(input[[paste0(oo, "Checkbox")]])
+			selections[[oo]] <- c(input[[paste0(oo, "Radiobutton")]])
 		}
 
 		return(applyDataSelections(df, selections))
@@ -312,7 +336,7 @@ server <- function(input, output) {
 	# function to create the plots
 	create_plot <- function(usedf){
 		# check if there is any brushing for zoom
-		brush_overall <- input$life_support_bar_plot_overall_brush
+		brush_overall <- input$organ_support_bar_plot_overall_brush
 		if (!is.null(brush_overall)) {
 			ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
 			ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
@@ -322,7 +346,7 @@ server <- function(input, output) {
 			ranges_overall$y <- NULL
 		}
 
-		brush_mortality <- input$life_support_bar_plot_mortality_brush
+		brush_mortality <- input$organ_support_bar_plot_mortality_brush
 		if (!is.null(brush_mortality)) {
 			ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
 			ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
@@ -332,7 +356,7 @@ server <- function(input, output) {
 			ranges_mortality$y <- NULL
 		}
 
-		generate_bar_plot(usedf, "Life_Support_Type", c("Mech_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$agg1, input$agg2, ranges_overall, ranges_mortality)
+		generate_bar_plot(usedf, "Organ_Support_Type", c("Mechanical_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$agg1, input$agg2, ranges_overall, ranges_mortality)
 
 	}
 
@@ -370,13 +394,13 @@ server <- function(input, output) {
 	})
 
 	# set the output for the plots
-	output$life_support_bar_plot_mortality <- renderPlot({
+	output$organ_support_bar_plot_mortality <- renderPlot({
 		input$updatePlot
 		isolate({
 			plots$mortality
 		})
 	})
-	output$life_support_bar_plot_overall <- renderPlot({
+	output$organ_support_bar_plot_overall <- renderPlot({
 		input$updatePlot
 		isolate({
 			plots$overall
@@ -394,8 +418,8 @@ server <- function(input, output) {
 	# tooltips
 	# https://shiny.rstudio.com/gallery/plot-interaction-basic.html
 	# https://gitlab.com/-/snippets/16220
-	output$life_support_bar_plot_mortality_hover_info <- renderUI({
-		hover <- input$life_support_bar_plot_mortality_hover
+	output$organ_support_bar_plot_mortality_hover_info <- renderUI({
+		hover <- input$organ_support_bar_plot_mortality_hover
 		if (is.numeric(hover$y)){
 
 			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
@@ -413,8 +437,8 @@ server <- function(input, output) {
 			)
 		}
 	})
-	output$life_support_bar_plot_overall_hover_info <- renderUI({
-		hover <- input$life_support_bar_plot_overall_hover
+	output$organ_support_bar_plot_overall_hover_info <- renderUI({
+		hover <- input$organ_support_bar_plot_overall_hover
 		if (is.numeric(hover$y)){
 
 			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
@@ -434,6 +458,21 @@ server <- function(input, output) {
 	})
 
 
+	# reset button
+	observeEvent(input$resetInputs, {
+		reset("AgeGroupCheckbox")
+		reset("GenderCheckbox")
+		reset("SeasonCheckbox")
+		reset("malignancyRadiobutton")
+		reset("transplantRadiobutton")
+		reset("technologyDependenceRadiobutton")
+		reset("MOD1Radiobutton")
+		reset("MOD3Radiobutton")
+
+		for (oo in organs){
+			reset(paste0(oo, "Radiobutton"))
+		}
+	})
 
 }
 
@@ -570,7 +609,7 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
 	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
-		labs(x = plot_type, y = "Overall Percentage")
+		labs(x = str_replace_all(plot_type,"_"," "), y = "Overall Percentage")
 		#labs(x = "", y = "Overall Percentage")
 
 	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
@@ -592,7 +631,7 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 					   pattern_key_scale_factor = 0.6) +
 		scale_pattern_manual(values = agg2_patterns$patterns) +
 		scale_pattern_angle_manual(values = agg2_patterns$angles) +
-		labs(x = plot_type, y = "Overall Percentage", pattern = agg2) + 
+		labs(x = str_replace_all(plot_type,"_"," "), y = "Overall Percentage", pattern = agg2) + 
 		#labs(x = "", y = "Overall Percentage", pattern = agg2) + 
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
@@ -633,10 +672,10 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 
 	# set the plot range if not brushed
 	if (is.null(range1$x)) range1$x <- c(0.5, length(cols)+0.5)
-	if (is.null(range1$y)) range1$y <- c(0, 1.1*max((usedf1$percent + usedf1$sig_percent)))
+	if (is.null(range1$y)) range1$y <- c(0, min(1.1*max((usedf1$percent + usedf1$sig_percent), na.rm=TRUE), 100.))
 
 	if (is.null(range2$x)) range2$x <- c(0.5, length(cols)+0.5)
-	if (is.null(range2$y)) range2$y <- c(0, 1.1*max((usedf1m$percent + usedf1m$sig_percent)))
+	if (is.null(range2$y)) range2$y <- c(0, min(1.1*max((usedf1m$percent + usedf1m$sig_percent), na.rm=TRUE), 100.))
 
 	# I don't think there's a clean way to do this without an if statement
 	ifelse(agg2 == "None",
@@ -662,11 +701,19 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 		theme(legend.position = "none")
 
 
-	return(list("overall" = f1, "mortality" = f1m))
+	# fix some labels
+	# legend
+	f1$labels$fill <- str_replace_all(f1$labels$fill, "_", " ")
+	f1$labels$pattern <- str_replace_all(f1$labels$pattern, "_", " ")
+	f1$labels$pattern_angle <- str_replace_all(f1$labels$pattern_angle, "_", " ")
+	# x axis labels
+	fix_labels_all <- Vectorize(function(x) {
+		str_replace_all(x, "_", " ")
+	})
+	f1 <- f1 + scale_x_discrete(labels = fix_labels_all)
+	f1m <- f1m + scale_x_discrete(labels = fix_labels_all)
 
-	#ggarrange(f1, f1m, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
-	# p <- ggarrange(f1, f1m, ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
-	# ggplotly(p, tooltip = "text")
+	return(list("overall" = f1, "mortality" = f1m))
 
 }
 
