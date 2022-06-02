@@ -605,7 +605,7 @@ calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
 	return(list("pct" = pctdf, "sig" = sigdf))
 }
 
-cbind_and_pivot <- function(psdf, plot_type, selections){
+cbind_and_pivot <- function(psdf, plot_type, selections, mortality){
 
 	# reorder this table so that it is easier to use with ggplot
 
@@ -629,11 +629,21 @@ cbind_and_pivot <- function(psdf, plot_type, selections){
 	# select the columns we want
 	out <- out[, append(selections, c(plot_type, "percent", "sig_percent"))]
 
-	out$tooltip <- paste(out$percent, '+/-', out$sig_percent,'%')
-	out$data_id <- 1:nrow(out)
+
 
 	return(out)
 
+}
+
+add_tooltips <- function(usedf, selections){
+	# define the tooltip
+	text <- ""
+	for (ss in selections){
+		text <- paste0(text, '<b>',str_replace_all(ss,'_',' '), ': </b>', usedf[[ss]], '<br/>')
+	}
+	usedf$tooltip <- paste0(text, '<b>percent : </b>',usedf$percent, ' +/- ', usedf$sig_percent,' %')
+
+	return(usedf)
 }
 
 set_fill_patterns <- function(usedf, col){
@@ -657,13 +667,16 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 	df1 <- select_and_summarize(usedf, cols, selections)
 	psdf <- calculate_pct_and_sig(df1, cols, selections, FALSE)
 	outdf <- cbind_and_pivot(psdf, plot_type, selections)
+	outdf <- add_tooltips(outdf, selections)
 
 	############################################
 	# mortality percentage given the selections
-	if (agg1 != "Outcome" && agg2 != "Outcome") selections <- append(selections, "Outcome")
-	df1m <- select_and_summarize(usedf, cols, selections)
-	psdfm <- calculate_pct_and_sig(df1m, cols, selections, TRUE)
-	outdfm <- cbind_and_pivot(psdfm, plot_type, selections)
+	selectionsm <- selections
+	if (agg1 != "Outcome" && agg2 != "Outcome") selectionsm <- append(selectionsm, "Outcome")
+	df1m <- select_and_summarize(usedf, cols, selectionsm)
+	psdfm <- calculate_pct_and_sig(df1m, cols, selectionsm, TRUE)
+	outdfm <- cbind_and_pivot(psdfm, plot_type, selectionsm)
+	outdfm <- add_tooltips(outdfm, selections)
 
 
 	############################################
@@ -676,12 +689,12 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 }
 
 single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
-	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
+	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip")) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		labs(x = str_replace_all(plot_type,"_"," "), y = "Overall Percentage")
 		#labs(x = "", y = "Overall Percentage")
 
-	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip")) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		#labs(x = plot_type, y = "Mortality Percentage")	
 		labs(x = "", y = "Mortality Percentage")	
@@ -691,7 +704,7 @@ single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
 
 double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2_patterns){
 
-	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
+	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip")) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
@@ -705,7 +718,7 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 	
-	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip")) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
