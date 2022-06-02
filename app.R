@@ -9,6 +9,7 @@ library(stringr)
 library(ggplot2)
 library(ggpattern)
 library(ggpubr)
+#library(ggiraph)
 #library(plotly)
 
 # start with the binary version
@@ -284,6 +285,7 @@ ui <- fluidPage(
 			htmlOutput("organ_support_bar_plot_mortality_hover_info")
 		),
 
+
 		div(
 			style = "position:relative",
 			plotOutput("organ_support_bar_plot_overall",
@@ -445,13 +447,13 @@ server <- function(input, output) {
 	output$organ_support_bar_plot_mortality <- renderPlot({
 		input$updatePlot
 		isolate({
-			plots$mortality
+			plots$mortality 
 		})
 	})
 	output$organ_support_bar_plot_overall <- renderPlot({
 		input$updatePlot
 		isolate({
-			plots$overall
+			plots$overall 	
 		})
 	})
 
@@ -468,41 +470,52 @@ server <- function(input, output) {
 	# https://gitlab.com/-/snippets/16220
 	output$organ_support_bar_plot_mortality_hover_info <- renderUI({
 		hover <- input$organ_support_bar_plot_mortality_hover
-
 		if (is.numeric(hover$y)){
 
-			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
-							"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+			# find the nearest bar and only show if the cursor is within the bar
+			bar_plot_data <- ggplot_build(plots$mortality)$data[[1]]
+			bar_index <- which.min(abs(bar_plot_data$x - hover$x))
+			if (bar_plot_data$y[[bar_index]] > hover$y) {
 
-			# actual tooltip created as wellPanel
-			wellPanel(
-				style = style,
-				div(
-					HTML(
-						paste(format(round(hover$y, ndigits), nsmall = ndigits), "%")
+				style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+								"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+
+				# actual tooltip created as wellPanel
+				wellPanel(
+					style = style,
+					div(
+						HTML(
+							bar_plot_data$tooltip[[bar_index]]
+						)
 					)
-				)
 
-			)
+				)
+			}
 		}
 	})
 	output$organ_support_bar_plot_overall_hover_info <- renderUI({
 		hover <- input$organ_support_bar_plot_overall_hover
 		if (is.numeric(hover$y)){
 
-			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
-							"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+			# find the nearest bar and only show if the cursor is within the bar
+			bar_plot_data <- ggplot_build(plots$overall)$data[[1]]
+			bar_index <- which.min(abs(bar_plot_data$x - hover$x))
+			if (bar_plot_data$y[[bar_index]] > hover$y) {
 
-			# actual tooltip created as wellPanel
-			wellPanel(
-				style = style,
-				div(
-					HTML(
-						paste(format(round(hover$y, ndigits), nsmall = ndigits), "%")
+				style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+								"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+
+				# actual tooltip created as wellPanel
+				wellPanel(
+					style = style,
+					div(
+						HTML(
+							bar_plot_data$tooltip[[bar_index]]
+						)
 					)
-				)
 
-			)
+				)
+			}
 		}
 	})
 
@@ -583,8 +596,8 @@ calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
 	for (cc in cols){
 		num <- pctdf[cc]
 		ifelse(mortality, den <- lived[cc] + died[cc], den <- usedf$Nsample)
-		pctdf[cc] <- 100.*( num/den )
-		sigdf[cc] <- 100.*( num/den**2. + (num/den**2.)**2.*den )**0.5
+		pctdf[cc] <- round(100.*( num/den ), ndigits)
+		sigdf[cc] <- round(100.*( num/den**2. + (num/den**2.)**2.*den )**0.5, ndigits)
 		# assuming no error on denominator
 		#sigdf1[cc] <- 100.*num**0.5/den
 	}
@@ -615,6 +628,9 @@ cbind_and_pivot <- function(psdf, plot_type, selections){
 
 	# select the columns we want
 	out <- out[, append(selections, c(plot_type, "percent", "sig_percent"))]
+
+	out$tooltip <- paste(out$percent, '+/-', out$sig_percent,'%')
+	out$data_id <- 1:nrow(out)
 
 	return(out)
 
@@ -660,12 +676,12 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 }
 
 single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
-	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
+	f <- ggplot(usedf, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		labs(x = str_replace_all(plot_type,"_"," "), y = "Overall Percentage")
 		#labs(x = "", y = "Overall Percentage")
 
-	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type)) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1,  y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
 		geom_bar(stat = "identity", position = "dodge", color="black") + 
 		#labs(x = plot_type, y = "Mortality Percentage")	
 		labs(x = "", y = "Mortality Percentage")	
@@ -675,7 +691,7 @@ single_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1){
 
 double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2_patterns){
 
-	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type)) + 
+	f <- ggplot(usedf, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
@@ -689,7 +705,7 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 		guides(pattern = guide_legend(override.aes = list(fill = "white")),
 			  fill = guide_legend(override.aes = list(pattern = "none")))
 	
-	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type)) + 
+	fm <- ggplot(usedfm, aes_string(fill=agg1, pattern=agg2, pattern_angle=agg2, y="percent", x=plot_type, tooltip="tooltip", data_id="data_id")) + 
 		geom_bar_pattern(stat = "identity", position = "dodge",
 					   color = "black", 
 					   pattern_fill = "black",
@@ -765,6 +781,7 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 	})
 	f1 <- f1 + scale_x_discrete(labels = fix_labels_all)
 	f1m <- f1m + scale_x_discrete(labels = fix_labels_all)
+
 
 	return(list("overall" = f1, "mortality" = f1m))
 
