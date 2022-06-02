@@ -14,6 +14,9 @@ library(ggpubr)
 # start with the binary version
 df <- read.csv('data/od_viz_binary.csv')
 
+# replace any NA values with 0
+df[is.na(df)] = 0
+
 # rename columns?
 names(df)[names(df) == 'Mech_Ventilation'] <- 'Mechanical_Ventilation'
 # conversions to use late
@@ -110,6 +113,17 @@ ui <- fluidPage(
 	# I need this for the reset button
 	useShinyjs(), 
 
+
+	# change the color for the error messages
+    tags$head(
+		tags$style(HTML("
+			.shiny-output-error-validation {
+				color: #ff0000;
+				font-style: italic;
+			}
+		"))
+    ),
+
 	# App title 
 	headerPanel("Pediatric Organ Dysfunction Explorer"),
 
@@ -193,7 +207,11 @@ ui <- fluidPage(
 			),
 		),
 
-		actionButton("resetInputs", "Reset all Section 1 inputs"),
+		div(
+			style = "min-height:20px; margin-bottom:10px",
+			textOutput("checkboxError")
+		),
+		actionButton("resetInputs", "Reset All Section 1 Selections"),
 
 		hr(style = "border-top: 1px solid #000000;"),
 		h4("2. Specify how to aggregate the data."),
@@ -221,6 +239,11 @@ ui <- fluidPage(
 				"None" = "None"
 			),
 			selected = "None"
+		),
+
+		div(
+			style = "min-height:20px;",
+			textOutput("aggError")
 		),
 
 		hr(style = "border-top: 1px solid #000000;"),
@@ -377,10 +400,35 @@ server <- function(input, output) {
 		)
 	}
 
+
+	# validate the checkboxes and aggregation dropdowns
+	output$checkboxError <- renderText({
+		validate(
+			need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
+			need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
+			need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
+		)
+	})
+	output$aggError <- renderText({
+		validate(
+			need(input$agg1 != input$agg2, message = 'Please select different values for each Aggregation Group.'),
+		)
+	})
+
 	# when button is clicked, select the data and update plots object
 	observe({
 		input$updatePlot 
 		isolate({
+
+			# include this here as well so that it doesn't proceed to try to make the plot 
+			# (is there a way to do this without repeating code??)
+			validate(
+				need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
+				need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
+				need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
+				need(input$agg1 != input$agg2, message = 'Please select different values for each Aggregation Group.'),
+			)
+
 			# take the selection on the data (<<- is "super assign" to update the global variable)
 			usedf <- selectData()
 
@@ -420,6 +468,7 @@ server <- function(input, output) {
 	# https://gitlab.com/-/snippets/16220
 	output$organ_support_bar_plot_mortality_hover_info <- renderUI({
 		hover <- input$organ_support_bar_plot_mortality_hover
+
 		if (is.numeric(hover$y)){
 
 			style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
@@ -481,9 +530,13 @@ applyDataSelections <- function(usedf, selections){
 	outdf <- usedf
 
 	for (ss in names(selections)){
-		ifelse(selections[[ss]] == "Any", select <- c("No", "Yes"), select <- selections[[ss]])
+		ifelse(selections[[ss]] == "Any", select <- as.factor(c("No", "Yes")), select <- selections[[ss]])
 		outdf <- outdf[ outdf[[ss]] %in% select, ]
 	}
+
+	# print(nrow(usedf))
+	# print(nrow(outdf))
+	# print(anti_join(usedf, outdf))
 
 	return(outdf)
 
