@@ -8,7 +8,8 @@ library(stringr)
 
 library(ggplot2)
 library(ggpattern)
-library(ggpubr)
+library(gginnards)
+#library(ggpubr)
 #library(ggiraph)
 #library(plotly)
 
@@ -107,7 +108,9 @@ pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 # number of digits to show for numerical text
 ndigits <- 1
 
-
+# for tooltips
+bar_index_mortality <- -1
+bar_index_overall <- -1
 
 # Define UI 
 ui <- fluidPage(
@@ -116,14 +119,14 @@ ui <- fluidPage(
 
 
 	# change the color for the error messages
-    tags$head(
+	tags$head(
 		tags$style(HTML("
 			.shiny-output-error-validation {
 				color: #ff0000;
 				font-style: italic;
 			}
 		"))
-    ),
+	),
 
 	# App title 
 	headerPanel("Pediatric Organ Dysfunction Explorer"),
@@ -466,59 +469,106 @@ server <- function(input, output) {
 	})
 
 	# tooltips
+	# it would be nice to combine this into a function so that I don't have to repeat it
 	# https://shiny.rstudio.com/gallery/plot-interaction-basic.html
 	# https://gitlab.com/-/snippets/16220
-	output$organ_support_bar_plot_mortality_hover_info <- renderUI({
+	reset_mortality_plot <- function(){
+		if (length(which_layers(plots$mortality, "GeomRect")) != 0){
+			plots$mortality <- delete_layers(plots$mortality, "GeomRect")
+			output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
+		}
+		output$organ_support_bar_plot_mortality_hover_info <- renderUI({})
+	}
+	reset_overall_plot <- function(){
+		if (length(which_layers(plots$overall, "GeomRect")) != 0){
+			plots$overall <- delete_layers(plots$overall, "GeomRect")
+			output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
+		}
+		output$organ_support_bar_plot_overall_hover_info <- renderUI({})
+	}
+	set_tooltip <- function(x,y,content){
+		style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+						"left:", x, "px; top:", y, "px;")
+
+		# actual tooltip created as wellPanel
+		tooltip <- 	wellPanel(style = style, div(HTML(content)))
+		return(tooltip)	
+	}
+	color_single_bar <- function(plot, bar_data){
+		plot <- append_layers(plot, 
+			geom_rect(data=bar_data,
+				aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+					x=NULL, y=NULL, fill=NULL, pattern=NULL, pattern_angle=NULL ),  
+				color="black", fill="gray"), 
+			position="top")
+		return(shift_layers(plot, "GeomRect", shift = -1))
+	}
+
+	observe({
 		hover <- input$organ_support_bar_plot_mortality_hover
+
 		if (is.numeric(hover$y)){
+			reset_overall_plot()
 
 			# find the nearest bar and only show if the cursor is within the bar
-			bar_plot_data <- ggplot_build(plots$mortality)$data[[1]]
-			bar_index <- which.min(abs(bar_plot_data$x - hover$x))
-			if (bar_plot_data$y[[bar_index]] > hover$y) {
+			bar_plot_data <- layer_data(plots$mortality, i = 1L)
+			foo <- which.min(abs(bar_plot_data$x - hover$x))
 
-				style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
-								"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+			if (bar_plot_data$y[[foo]] > hover$y) {
 
-				# actual tooltip created as wellPanel
-				wellPanel(
-					style = style,
-					div(
-						HTML(
-							bar_plot_data$tooltip[[bar_index]]
-						)
-					)
+				if (foo != bar_index_mortality && bar_index_mortality != -1) reset_mortality_plot()
+				bar_index_mortality <<- foo
 
-				)
-			}
-		}
+				if (length(which_layers(plots$mortality, "GeomRect")) == 0){
+					# color the bar
+					plots$mortality <- color_single_bar(plots$mortality, fortify(bar_plot_data[bar_index_mortality,]))
+					output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
+
+					# add the tooltip
+					output$organ_support_bar_plot_mortality_hover_info <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+				}
+
+
+
+			} else {
+				reset_mortality_plot()
+			} 
+		} 
+
 	})
-	output$organ_support_bar_plot_overall_hover_info <- renderUI({
+
+	observe({
 		hover <- input$organ_support_bar_plot_overall_hover
+
 		if (is.numeric(hover$y)){
+			reset_mortality_plot()
 
 			# find the nearest bar and only show if the cursor is within the bar
-			bar_plot_data <- ggplot_build(plots$overall)$data[[1]]
-			bar_index <- which.min(abs(bar_plot_data$x - hover$x))
-			if (bar_plot_data$y[[bar_index]] > hover$y) {
+			bar_plot_data <- layer_data(plots$overall, i = 1L)
+			foo <- which.min(abs(bar_plot_data$x - hover$x))
 
-				style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
-								"left:", hover$coords_css$x + 10, "px; top:", hover$coords_css$y + 10, "px;")
+			if (bar_plot_data$y[[foo]] > hover$y) {
 
-				# actual tooltip created as wellPanel
-				wellPanel(
-					style = style,
-					div(
-						HTML(
-							bar_plot_data$tooltip[[bar_index]]
-						)
-					)
+				if (foo != bar_index_overall && bar_index_overall != -1) reset_overall_plot()
+				bar_index_overall <<- foo
 
-				)
-			}
-		}
+				if (length(which_layers(plots$overall, "GeomRect")) == 0){
+					# color the bar
+					plots$overall <- color_single_bar(plots$overall, fortify(bar_plot_data[bar_index_overall,]))
+					output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
+
+					# add the tooltip
+					output$organ_support_bar_plot_overall_hover_info <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+				}
+
+
+
+			} else {
+				reset_overall_plot()
+			} 
+		} 
+
 	})
-
 
 	# reset button
 	observeEvent(input$resetInputs, {
