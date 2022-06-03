@@ -285,7 +285,7 @@ ui <- fluidPage(
 					resetOnNew = TRUE
 				),
 			),
-			htmlOutput("organ_support_bar_plot_mortality_hover_info")
+			htmlOutput("organ_support_bar_plot_mortality_hover_tooltip")
 		),
 
 
@@ -304,7 +304,8 @@ ui <- fluidPage(
 					resetOnNew = TRUE
 				)
 			),
-			htmlOutput("organ_support_bar_plot_overall_hover_info"),
+			htmlOutput("organ_support_bar_plot_overall_hover_tooltip"),
+			htmlOutput("organ_support_bar_plot_overall_hover_div"),
 		),
 
 
@@ -472,20 +473,30 @@ server <- function(input, output) {
 	# it would be nice to combine this into a function so that I don't have to repeat it
 	# https://shiny.rstudio.com/gallery/plot-interaction-basic.html
 	# https://gitlab.com/-/snippets/16220
-	reset_mortality_plot <- function(){
-		if (length(which_layers(plots$mortality, "GeomRect")) != 0){
-			plots$mortality <- delete_layers(plots$mortality, "GeomRect")
-			output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
-		}
-		output$organ_support_bar_plot_mortality_hover_info <- renderUI({})
-	}
-	reset_overall_plot <- function(){
-		if (length(which_layers(plots$overall, "GeomRect")) != 0){
-			plots$overall <- delete_layers(plots$overall, "GeomRect")
-			output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
-		}
-		output$organ_support_bar_plot_overall_hover_info <- renderUI({})
-	}
+	# reset_mortality_plot <- function(){
+	# 	if (length(which_layers(plots$mortality, "GeomRect")) != 0){
+	# 		plots$mortality <- delete_layers(plots$mortality, "GeomRect")
+	# 		#output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
+	# 	}
+	# 	output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI({})
+	# }
+	# reset_overall_plot <- function(){
+	# 	if (length(which_layers(plots$overall, "GeomRect")) != 0){
+	# 		plots$overall <- delete_layers(plots$overall, "GeomRect")
+	# 		#output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
+	# 	}
+	# 	output$organ_support_bar_plot_overall_hover_tooltip <- renderUI({})
+	# }
+
+	# color_single_bar <- function(plot, bar_data){
+	# 	plot <- append_layers(plot, 
+	# 		geom_rect(data=bar_data,
+	# 			aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+	# 				x=NULL, y=NULL, fill=NULL, pattern=NULL, pattern_angle=NULL ),  
+	# 			color="black", fill="gray"), 
+	# 		position="top")
+	# 	return(shift_layers(plot, "GeomRect", shift = -1))
+	# }
 	set_tooltip <- function(x,y,content){
 		style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
 						"left:", x, "px; top:", y, "px;")
@@ -494,79 +505,146 @@ server <- function(input, output) {
 		tooltip <- 	wellPanel(style = style, div(HTML(content)))
 		return(tooltip)	
 	}
-	color_single_bar <- function(plot, bar_data){
-		plot <- append_layers(plot, 
-			geom_rect(data=bar_data,
-				aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
-					x=NULL, y=NULL, fill=NULL, pattern=NULL, pattern_angle=NULL ),  
-				color="black", fill="gray"), 
-			position="top")
-		return(shift_layers(plot, "GeomRect", shift = -1))
+	set_bardiv <- function(hover, bar_data){
+		# get the bounds
+		#xconv <- hover$coords_css$x/hover$x
+		xconv <- (hover$range$right - hover$range$left)/(hover$domain$right - hover$domain$left)
+		xmin <- (bar_data$xmin - hover$range$left)*xconv
+		print(paste("x", hover$x, "css_x", hover$coords_css$x,"conv", xconv,"xmin", bar_data$xmin, "xmin_conv", xmin))
+		xmax <- bar_data$xmax*xconv
+		ymin <- hover$coords_css$y + 10
+		ymax <- hover$coords_css$y + 50
+
+		style <- paste0("position:absolute; z-index:100; background-color: rgba(0, 0, 0, 0); border: 4px solid black; border-radius:0;",
+						"left:", xmin, "px; top:", ymin, "px; width:",xmax - xmin, "px; height:", ymax - ymin, "px")
+
+		# actual tooltip created as wellPanel
+		div <- 	wellPanel(style = style, div(""))
+		return(div)	
 	}
+
+	# observe({
+	# 	hover <- input$organ_support_bar_plot_mortality_hover
+
+	# 	if (is.numeric(hover$y)){
+	# 		reset_overall_plot()
+
+	# 		# find the nearest bar and only show if the cursor is within the bar
+	# 		bar_plot_data <- layer_data(plots$mortality, i = 1L)
+	# 		foo <- which.min(abs(bar_plot_data$x - hover$x))
+
+	# 		if (bar_plot_data$y[[foo]] > hover$y) {
+
+	# 			if (foo != bar_index_mortality && bar_index_mortality != -1) reset_mortality_plot()
+	# 			bar_index_mortality <<- foo
+
+	# 			if (length(which_layers(plots$mortality, "GeomRect")) == 0){
+	# 				# color the bar
+	# 				plots$mortality <- color_single_bar(plots$mortality, fortify(bar_plot_data[bar_index_mortality,]))
+	# 				#output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
+
+	# 				# add the tooltip
+	# 				output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+	# 			}
+
+
+
+	# 		} else {
+	# 			reset_mortality_plot()
+	# 		} 
+	# 	} 
+
+	# })
+
+
+	# observe({
+	# 	hover <- input$organ_support_bar_plot_overall_hover
+
+	# 	if (is.numeric(hover$y)){
+	# 		reset_mortality_plot()
+
+	# 		# find the nearest bar and only show if the cursor is within the bar
+	# 		bar_plot_data <- layer_data(plots$overall, i = 1L)
+	# 		foo <- which.min(abs(bar_plot_data$x - hover$x))
+
+	# 		if (bar_plot_data$y[[foo]] > hover$y) {
+
+	# 			if (foo != bar_index_overall && bar_index_overall != -1) reset_overall_plot()
+	# 			bar_index_overall <<- foo
+
+	# 			if (length(which_layers(plots$overall, "GeomRect")) == 0){
+	# 				# color the bar
+	# 				plots$overall <- color_single_bar(plots$overall, fortify(bar_plot_data[bar_index_overall,]))
+	# 				#output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
+
+	# 				# add the tooltip
+	# 				output$organ_support_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+	# 			}
+
+
+
+	# 		} else {
+	# 			reset_overall_plot()
+	# 		} 
+	# 	} 
+
+	# })
+
 
 	observe({
 		hover <- input$organ_support_bar_plot_mortality_hover
-
+		reset <- TRUE
 		if (is.numeric(hover$y)){
-			reset_overall_plot()
 
 			# find the nearest bar and only show if the cursor is within the bar
 			bar_plot_data <- layer_data(plots$mortality, i = 1L)
 			foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 			if (bar_plot_data$y[[foo]] > hover$y) {
+				reset <- FALSE
 
-				if (foo != bar_index_mortality && bar_index_mortality != -1) reset_mortality_plot()
-				bar_index_mortality <<- foo
-
-				if (length(which_layers(plots$mortality, "GeomRect")) == 0){
-					# color the bar
-					plots$mortality <- color_single_bar(plots$mortality, fortify(bar_plot_data[bar_index_mortality,]))
-					output$organ_support_bar_plot_mortality <- renderPlot(plots$mortality)
+				if (foo != bar_index_mortality){
+					bar_index_mortality <<- foo
 
 					# add the tooltip
-					output$organ_support_bar_plot_mortality_hover_info <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+					output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+
 				}
-
-
-
-			} else {
-				reset_mortality_plot()
 			} 
 		} 
+
+		if (reset) output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI("")
 
 	})
 
 	observe({
 		hover <- input$organ_support_bar_plot_overall_hover
-
+		reset <- TRUE
 		if (is.numeric(hover$y)){
-			reset_mortality_plot()
 
 			# find the nearest bar and only show if the cursor is within the bar
 			bar_plot_data <- layer_data(plots$overall, i = 1L)
 			foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 			if (bar_plot_data$y[[foo]] > hover$y) {
+				reset <- FALSE
 
-				if (foo != bar_index_overall && bar_index_overall != -1) reset_overall_plot()
-				bar_index_overall <<- foo
-
-				if (length(which_layers(plots$overall, "GeomRect")) == 0){
-					# color the bar
-					plots$overall <- color_single_bar(plots$overall, fortify(bar_plot_data[bar_index_overall,]))
-					output$organ_support_bar_plot_overall <- renderPlot(plots$overall)
+				if (foo != bar_index_overall){
+					bar_index_overall <<- foo
 
 					# add the tooltip
-					output$organ_support_bar_plot_overall_hover_info <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+					output$organ_support_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+
+					# add the div
+					output$organ_support_bar_plot_overall_hover_div <- renderUI(set_bardiv(hover, bar_plot_data[bar_index_overall,]))
 				}
-
-
-
-			} else {
-				reset_overall_plot()
 			} 
 		} 
+
+		if (reset) {
+			output$organ_support_bar_plot_overall_hover_tooltip <- renderUI("")
+			output$organ_support_bar_plot_overall_hover_div <- renderUI("")
+		}
 
 	})
 
