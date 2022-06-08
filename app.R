@@ -19,6 +19,13 @@ source("src/R/init.R")
 # functions for creating the bar charts 
 source("src/R/bar_chart_utils.R")
 
+# modules for the ui
+source("src/R/organ_support_type/sidebarPanel.R")
+source("src/R/organ_support_type/mainPanel.R")
+
+# modules for the server
+source("src/R/organ_support_type/server.R")
+
 # Define UI 
 ui <- fluidPage(
 	# I need this for the reset button
@@ -39,21 +46,22 @@ ui <- fluidPage(
 
 	# ui for the organ_support_type plot
 	# adding the [1] to avoid printing TRUE to the screen (odd)
-	source("src/R/organ_support_type/sidebarPanel.R", local=TRUE)[1],
+	sidebarPanel(
+		organ_support_type_sidebar("organs")
+	),
 
-	source("src/R/organ_support_type/mainPanel.R", local=TRUE)[1]
-
-
+	mainPanel(
+		organ_support_type_main("organs")
+	)
 )
 
 
 
 
 # Define server logic 
-server <- function(input, output) {
+server <- function(input, output, session) {
+	organ_support_type_server("organs")
 
-	# server for the organ_support_type plot
-	source("src/R/organ_support_type/server.R", local=TRUE)
 }
 
 
