@@ -1,13 +1,13 @@
 # Main panel for displaying outputs  
 # for the organ support type figure 
 
-organ_support_type_main <- function(id){
+organ_support_main <- function(id){
 
 	ns <- NS(id)
 
 	tagList(
 		# text describing plot 
-		h3(textOutput(ns("plot_title"))),
+		h3(textOutput(ns("organ_support_plot_title"))),
 
 		# plots (Note that the legend changes the size; so even making them both same height is not exact)
 		div(
@@ -48,7 +48,5 @@ organ_support_type_main <- function(id){
 			# htmlOutput(ns("organ_support_bar_plot_overall_hover_div")),
 		),
 
-
-		htmlOutput(ns("summary_table")),
 	)
 }

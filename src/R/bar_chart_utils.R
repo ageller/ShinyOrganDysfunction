@@ -1,19 +1,4 @@
-applyDataSelections <- function(usedf, selections){
-
-	outdf <- usedf
-
-	for (ss in names(selections)){
-		ifelse(selections[[ss]] == "Any", select <- as.factor(c("No", "Yes")), select <- selections[[ss]])
-		outdf <- outdf[ outdf[[ss]] %in% select, ]
-	}
-
-	# print(nrow(usedf))
-	# print(nrow(outdf))
-	# print(anti_join(usedf, outdf))
-
-	return(outdf)
-
-}
+# function to make bar charts
 
 select_and_summarize <- function(usedf, cols, selections) {
 	# select frome a dataframe and summarize elements for bar chart

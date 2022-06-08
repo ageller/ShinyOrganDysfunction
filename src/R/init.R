@@ -1,3 +1,5 @@
+#read in and intialize the data
+
 # start with the binary version
 df <- read.csv('src/data/od_viz_binary.csv')
 
@@ -51,7 +53,6 @@ for (ff in factor_cols){
 	df[, ff] <- as.factor(df[, ff])
 }
 
-
 # create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
 outcomes <- sort(unlist(unique(df$Outcome), use.names = FALSE))
@@ -74,6 +75,17 @@ for (cc in organs){
 	foo <- select(df, contains(cc))
 	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
 }
+
+
+# # set all the relevant columns as factors
+# factor_cols = c("Age_Group", "Outcome", "Season_Admission", "Gender", "Malignancy", "Transplant", "Technology_Dependence", "MOD1", "MOD3")
+# for (oo in organs){
+# 	factor_cols <- append(factor_cols, oo)
+# }
+# for (ff in factor_cols){
+# 	df[, ff] <- as.factor(df[, ff])
+# }
+
 
 # define standard colors for each aggregate
 colors = c("Age_Group" = "Blues", 

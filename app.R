@@ -16,15 +16,26 @@ library(gginnards)
 # read in and manipulate the initial data and set various global quantities
 source("src/R/init.R")
 
+# general utility functions
+source("src/R/utils.R")
+
 # functions for creating the bar charts 
 source("src/R/bar_chart_utils.R")
 
 # modules for the ui
-source("src/R/organ_support_type/sidebarPanel.R")
-source("src/R/organ_support_type/mainPanel.R")
+source("src/R/data_selection_panel.R")
+source("src/R/update_plot_panel.R")
+source("src/R/organ_bar_chart_sidebarPanel.R")
+source("src/R/organ_support/mainPanel.R")
+source("src/R/organ_failure/mainPanel.R")
 
 # modules for the server
-source("src/R/organ_support_type/server.R")
+source("src/R/organ_support/server.R")
+source("src/R/organ_failure/server.R")
+
+# everything will be on the same namespace
+namespace <- "Nelson"
+ns <- NS(namespace)
 
 # Define UI 
 ui <- fluidPage(
@@ -47,11 +58,25 @@ ui <- fluidPage(
 	# ui for the organ_support_type plot
 	# adding the [1] to avoid printing TRUE to the screen (odd)
 	sidebarPanel(
-		organ_support_type_sidebar("organs")
+		data_selection_sidebar(namespace),
+		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", organ_bar_sidebar(namespace)),
+		update_plot_sidebar(namespace),
 	),
 
 	mainPanel(
-		organ_support_type_main("organs")
+		tabsetPanel(
+			id = "mainPanelTabSelected",
+			tabPanel("Organ Support Type Bar Chart",
+				value=1, 
+				organ_support_main(namespace),
+			),
+			tabPanel("Organ Failure Bar Chart",
+				value=2, 
+				organ_failure_main(namespace)
+			),
+		),
+		htmlOutput(ns("summary_table"))
+
 	)
 )
 
@@ -60,7 +85,8 @@ ui <- fluidPage(
 
 # Define server logic 
 server <- function(input, output, session) {
-	organ_support_type_server("organs")
+	organ_support_server(namespace)
+	organ_failure_server(namespace)
 
 }
 

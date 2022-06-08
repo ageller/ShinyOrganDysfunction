@@ -1,6 +1,4 @@
-# Sidebar panel for inputs 
-# for the organ support type figure 
-organ_support_type_sidebar <- function(id){
+data_selection_sidebar <- function(id){
 
 	ns <- NS(id)
 
@@ -87,46 +85,5 @@ organ_support_type_sidebar <- function(id){
 			textOutput(ns("checkboxError"))
 		),
 		actionButton(ns("resetInputs"), "Reset All Section 1 Selections"),
-
-		hr(style = "border-top: 1px solid #000000;"),
-		h4("2. Specify how to aggregate the data."),
-		selectInput(
-			ns("agg1"), "First Aggregation Group", 
-			c("Age Group" = "Age_Group", 
-				"Outcome" = "Outcome",
-				"Season Admission" = "Season_Admission",
-				"Gender" = "Gender",
-				"Malignancy" = "Malignancy",
-				"Transplant" = "Transplant",
-				"Technology Dependence" = "Technology_Dependence"
-			),
-			selected = "Age Group"
-		),
-		selectInput(
-			ns("agg2"), "Second Aggregation Group (optional)", 
-			c("Age Group" = "Age_Group", 
-				"Outcome" = "Outcome",
-				"Season Admission" = "Season_Admission",
-				"Gender" = "Gender",
-				"Malignancy" = "Malignancy",
-				"Transplant" = "Transplant",
-				"Technology Dependence" = "Technology_Dependence",
-				"None" = "None"
-			),
-			selected = "None"
-		),
-
-		div(
-			style = "min-height:20px;",
-			textOutput(ns("aggError"))
-		),
-
-		hr(style = "border-top: 1px solid #000000;"),
-		h4("3. Click the button below to update the plot."),
-		actionButton(ns("updatePlot"), "Update Plot"),
-
-		hr(style = "border-top: 1px solid #000000;"),
-
-		p("To zoom, click and drag over the desired area on the plot in the left panel to create a zoom box.  (You can click outside the box to reset.)  When satisfied, click the 'Update Plot' button above to redefine the plot axes according to your zoom box.  Each plot panel can have a separate zoom.  If no zoom box is defined, clicking 'Update Plot' will reset the axes to the default."),
 	)
 }
