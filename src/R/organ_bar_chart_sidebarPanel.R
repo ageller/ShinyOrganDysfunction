@@ -37,7 +37,7 @@ organ_bar_sidebar <- function(id){
 
 		div(
 			style = "min-height:20px;",
-			textOutput(ns("organ_bar_aggError"))
+			textOutput(ns("organ_bar_agg_error"))
 		),
 
 	)

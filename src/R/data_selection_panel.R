@@ -1,3 +1,6 @@
+# Sidebar panel for inputs 
+# for selecting data based on demographics (used for all plots)
+
 data_selection_sidebar <- function(id){
 
 	ns <- NS(id)

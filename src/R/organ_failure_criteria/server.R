@@ -1,51 +1,75 @@
 # server module 
-# for the organ support type figure
+# for the orgain failure criteria figure
 
-organ_support_server <- function(id){
+organ_failure_criteria_server <- function(id){
 
 	moduleServer(
 		id,
 		function(input, output, session){
 
 			# generate two separate plots, each will be zoomable
-			organ_support_ranges_overall <- reactiveValues(x = NULL, y = NULL)
-			organ_support_ranges_mortality <- reactiveValues(x = NULL, y = NULL)
-			organ_support_plots <- reactiveValues(overall = NULL, mortality = NULL, summary = NULL)
-
-
-			# Plot title
-			organ_support_plot_title <- function(){
-				txt <- paste("Organ support type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
-				if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
-				return(txt)
-			}
+			organ_failure_criteria_ranges_overall <- reactiveValues(x = NULL, y = NULL)
+			organ_failure_criteria_ranges_mortality <- reactiveValues(x = NULL, y = NULL)
+			organ_failure_criteria_plots <- reactiveValues(overall = NULL, mortality = NULL, summary = NULL)
 
 
 			# function to create the plots
 			create_plot <- function(usedf){
 				# check if there is any brushing for zoom
-				brush_overall <- input$organ_support_bar_plot_overall_brush
+				brush_overall <- input$organ_failure_criteria_bar_plot_overall_brush
 				if (!is.null(brush_overall)) {
-					organ_support_ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
-					organ_support_ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
+					organ_failure_criteria_ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
+					organ_failure_criteria_ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
 
 				} else {
-					organ_support_ranges_overall$x <- NULL
-					organ_support_ranges_overall$y <- NULL
+					organ_failure_criteria_ranges_overall$x <- NULL
+					organ_failure_criteria_ranges_overall$y <- NULL
 				}
 
-				brush_mortality <- input$organ_support_bar_plot_mortality_brush
+				brush_mortality <- input$organ_failure_criteria_bar_plot_mortality_brush
 				if (!is.null(brush_mortality)) {
-					organ_support_ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
-					organ_support_ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
+					organ_failure_criteria_ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
+					organ_failure_criteria_ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
 
 				} else {
-					organ_support_ranges_mortality$x <- NULL
-					organ_support_ranges_mortality$y <- NULL
+					organ_failure_criteria_ranges_mortality$x <- NULL
+					organ_failure_criteria_ranges_mortality$y <- NULL
 				}
-				generate_bar_plot(usedf, "Organ_Support_Type", c("Mechanical_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$organ_bar_agg1, input$organ_bar_agg2, organ_support_ranges_overall, organ_support_ranges_mortality)
+
+
+				# for a given criteria do the following:
+				# 1. create a temp df that doesn't have the organ columns
+				# 2. add back the organ columns as numeric for just that criteria (with 0 if the organ doesn't exist?)
+				# 3. summarize for the different organ types and add column for the criteria
+				# then append these summary dfs for all the criteria and run through the rest of my functions
+
+				usedf <- df[ , !(names(df) %in% organs)]
+
+				df1 <- data.frame(matrix(ncol = length(organs)+1, nrow = 0))
+				df1m <- data.frame(matrix(ncol = length(organs)+2, nrow = 0))
+				for (cc in criteria){
+					
+					# for each organ type create a new column that has 0 or 1 if any day had that failure
+					# include only the days the user selected
+					for (oo in organs){
+						str_list <- paste(cc, oo, paste0("Day", input$organ_failure_criteria_day_checkbox), sep="_")
+						foo <- select(usedf, matches(paste(str_list, collapse="|")))
+						usedf[[oo]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, 0, 1)
+					}
+
+					foo <- select_and_summarize(usedf, organs, c())
+					foo$criteria <- cc
+					df1 <- rbind(df1, foo)
+					
+					bar <- select_and_summarize(usedf, organs, c("Outcome"))
+					bar$criteria <- cc
+					df1m <- rbind(df1m, bar)
+				}
+
+				generate_bar_plot(usedf, "Organ_Failure_Criteria_Comparison", organs, "criteria", "None", organ_failure_criteria_ranges_overall, organ_failure_criteria_ranges_mortality, df1, df1m)
 
 			}
+
 
 
 			# when button is clicked, select the data and update plots object
@@ -59,7 +83,7 @@ organ_support_server <- function(id){
 						need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
 						need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
 						need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
-						need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+						need(input$organ_failure_criteria_day_checkbox, message = 'Please select at least one day.'),
 					)
 
 					# take the selection on the data (<<- is "super assign" to update the global variable)
@@ -67,9 +91,9 @@ organ_support_server <- function(id){
 
 					# create the plots and table and save them in the plots object
 					foo <- create_plot(usedf)
-					organ_support_plots$overall <- foo$overall
-					organ_support_plots$mortality <- foo$mortality
-					organ_support_plots$summary <- create_summary_table(usedf)
+					organ_failure_criteria_plots$overall <- foo$overall
+					organ_failure_criteria_plots$mortality <- foo$mortality
+					organ_failure_criteria_plots$summary <- create_summary_table(usedf)
 
 				})
 			})
@@ -106,12 +130,12 @@ organ_support_server <- function(id){
 
 
 			observe({
-				hover <- input$organ_support_bar_plot_mortality_hover
+				hover <- input$organ_failure_criteria_bar_plot_mortality_hover
 				reset <- TRUE
 				if (is.numeric(hover$y)){
 
 					# find the nearest bar and only show if the cursor is within the bar
-					bar_plot_data <- layer_data(organ_support_plots$mortality, i = 1L)
+					bar_plot_data <- layer_data(organ_failure_criteria_plots$mortality, i = 1L)
 					foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 					if (!is.na(bar_plot_data$y[[foo]])){
@@ -122,7 +146,7 @@ organ_support_server <- function(id){
 								bar_index_mortality <<- foo
 
 								# add the tooltip
-								output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+								output$organ_failure_criteria_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
 
 							}
 						} 
@@ -130,18 +154,18 @@ organ_support_server <- function(id){
 				}
 
 				if (reset) {
-					output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI("")
+					output$organ_failure_criteria_bar_plot_mortality_hover_tooltip <- renderUI("")
 					bar_index_mortality <<- -1
 				} 
 			})
 
 			observe({
-				hover <- input$organ_support_bar_plot_overall_hover
+				hover <- input$organ_failure_criteria_bar_plot_overall_hover
 				reset <- TRUE
 				if (is.numeric(hover$y)){
 
 					# find the nearest bar and only show if the cursor is within the bar
-					bar_plot_data <- layer_data(organ_support_plots$overall, i = 1L)
+					bar_plot_data <- layer_data(organ_failure_criteria_plots$overall, i = 1L)
 					foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 					if (!is.na(bar_plot_data$y[[foo]])){
@@ -153,18 +177,18 @@ organ_support_server <- function(id){
 								bar_index_overall <<- foo
 
 								# add the tooltip
-								output$organ_support_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+								output$organ_failure_criteria_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
 
 								# add the div to highlight the selected bar (not working)
-								# output$organ_support_bar_plot_overall_hover_div <- renderUI(set_bardiv(hover, bar_plot_data[bar_index_overall,]))
+								# output$organ_failure_criteria_bar_plot_overall_hover_div <- renderUI(set_bardiv(hover, bar_plot_data[bar_index_overall,]))
 							}
 						} 
 					} 
 				} 
 
 				if (reset) {
-					output$organ_support_bar_plot_overall_hover_tooltip <- renderUI("")
-					# output$organ_support_bar_plot_overall_hover_div <- renderUI("")
+					output$organ_failure_criteria_bar_plot_overall_hover_tooltip <- renderUI("")
+					# output$organ_failure_criteria_bar_plot_overall_hover_div <- renderUI("")
 					bar_index_overall <<- -1
 				}
 
@@ -186,36 +210,27 @@ organ_support_server <- function(id){
 				}
 			})
 
-
 			# outputs
 
-			# title
-			output$organ_support_plot_title <- renderText({
-				input$updatePlot
-				isolate({
-					organ_support_plot_title()
-				})
-			})
-
 			# plots
-			output$organ_support_bar_plot_mortality <- renderPlot({
+			output$organ_failure_criteria_bar_plot_mortality <- renderPlot({
 				input$updatePlot
 				isolate({
-					organ_support_plots$mortality 
+					organ_failure_criteria_plots$mortality 
 				})
 			})
-			output$organ_support_bar_plot_overall <- renderPlot({
+			output$organ_failure_criteria_bar_plot_overall <- renderPlot({
 				input$updatePlot
 				isolate({
-					organ_support_plots$overall 	
+					organ_failure_criteria_plots$overall 	
 				})
 			})
 
-			#  summary table
+			# summary table
 			output$summary_table <- renderUI({
 				input$updatePlot
 				isolate({
-					organ_support_plots$summary
+					organ_failure_criteria_plots$summary
 				})
 			})
 
@@ -227,12 +242,11 @@ organ_support_server <- function(id){
 					need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
 				)
 			})
-			output$organ_bar_agg_error <- renderText({
+			output$organ_failure_criteria_day_error <- renderText({
 				validate(
-					need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+					need(input$organ_failure_criteria_day_checkbox, message = 'Please select at least one day.'),
 				)
 			})
-
 		}
 	)
 

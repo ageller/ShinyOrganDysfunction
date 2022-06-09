@@ -26,12 +26,15 @@ source("src/R/bar_chart_utils.R")
 source("src/R/data_selection_panel.R")
 source("src/R/update_plot_panel.R")
 source("src/R/organ_bar_chart_sidebarPanel.R")
+source("src/R/organ_failure_criteria/sidebarPanel.R")
 source("src/R/organ_support/mainPanel.R")
 source("src/R/organ_failure/mainPanel.R")
+source("src/R/organ_failure_criteria/mainPanel.R")
 
 # modules for the server
 source("src/R/organ_support/server.R")
 source("src/R/organ_failure/server.R")
+source("src/R/organ_failure_criteria/server.R")
 
 # everything will be on the same namespace
 namespace <- "Nelson"
@@ -60,19 +63,24 @@ ui <- fluidPage(
 	sidebarPanel(
 		data_selection_sidebar(namespace),
 		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", organ_bar_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==3", organ_failure_criteria_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 	),
 
 	mainPanel(
 		tabsetPanel(
 			id = "mainPanelTabSelected",
-			tabPanel("Organ Support Type Bar Chart",
+			tabPanel("Organ Support Type",
 				value=1, 
 				organ_support_main(namespace),
 			),
-			tabPanel("Organ Failure Bar Chart",
+			tabPanel("Organ Failure Type",
 				value=2, 
 				organ_failure_main(namespace)
+			),
+			tabPanel("Organ Failure Criteria",
+				value=3, 
+				organ_failure_criteria_main(namespace)
 			),
 		),
 		htmlOutput(ns("summary_table"))
@@ -87,7 +95,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
 	organ_support_server(namespace)
 	organ_failure_server(namespace)
-
+	organ_failure_criteria_server(namespace)
 }
 
 

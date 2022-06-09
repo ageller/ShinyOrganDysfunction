@@ -235,7 +235,7 @@ organ_failure_server <- function(id){
 					need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
 				)
 			})
-			output$organ_bar_aggError <- renderText({
+			output$organ_bar_agg_error <- renderText({
 				validate(
 					need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
 				)

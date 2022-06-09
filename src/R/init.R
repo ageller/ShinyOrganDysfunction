@@ -47,11 +47,31 @@ df <- df %>%
 		(PODIUM_Count_Day1 >= 2 | PODIUM_Count_Day2 >= 2 | PODIUM_Count_Day3 >= 2) ~ "Yes",
 	))
 
+
+# get the unique organ types
+#foo <- colnames(select(df, contains("Day")))
+foo <- colnames(select(df, contains("PODIUM")))
+foo <- strsplit(foo, '_')
+foo <- sapply(foo,"[[", 2)
+organs <- unlist(unique(foo), use.names = FALSE)
+organs <- organs[!organs %in% 'Count']
+
+# for each organ type create a new column that has "No" or "Yes" if any day had that failure
+for (cc in organs){
+	foo <- select(select(df, contains(cc)), contains("PODIUM"))
+	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
+}
+
+
 # set all the relevant columns as factors
-factor_cols = c("Age_Group", "Outcome", "Season_Admission", "Gender", "Malignancy", "Transplant", "Technology_Dependence")
+factor_cols = c("Age_Group", "Outcome", "Season_Admission", "Gender", "Malignancy", "Transplant", "Technology_Dependence", "MOD1", "MOD3")
+for (oo in organs){
+	factor_cols <- append(factor_cols, oo)
+}
 for (ff in factor_cols){
 	df[, ff] <- as.factor(df[, ff])
 }
+
 
 # create vectors for the checkboxes
 ages <- sort(unlist(unique(df$Age_Group), use.names = FALSE))
@@ -62,30 +82,7 @@ malignancies <- sort(unlist(unique(df$Malignancy), use.names = FALSE))
 transplants <- sort(unlist(unique(df$Transplant), use.names = FALSE))
 technologyDependencies <- sort(unlist(unique(df$Technology_Dependence), use.names = FALSE))
 
-# get the unique organ types
-#foo <- colnames(select(df, contains("Day")))
-foo <- colnames(select(df, contains("PODIUM")))
-foo <- strsplit(foo, '_')
-foo <- sapply(foo,"[[", 2)
-organs <- unlist(unique(foo), use.names = FALSE)
-organs <- organs[!organs %in% 'Count']
-
-# for each organ type create a new column that has 0 or 1 if any day had that failure
-for (cc in organs){
-	foo <- select(df, contains(cc))
-	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")
-}
-
-
-# # set all the relevant columns as factors
-# factor_cols = c("Age_Group", "Outcome", "Season_Admission", "Gender", "Malignancy", "Transplant", "Technology_Dependence", "MOD1", "MOD3")
-# for (oo in organs){
-# 	factor_cols <- append(factor_cols, oo)
-# }
-# for (ff in factor_cols){
-# 	df[, ff] <- as.factor(df[, ff])
-# }
-
+criteria <- c("pSOFA", "PELOD2", "PODIUM", "IPSCC")
 
 # define standard colors for each aggregate
 colors = c("Age_Group" = "Blues", 
@@ -94,7 +91,8 @@ colors = c("Age_Group" = "Blues",
 			"Gender" = "Oranges",
 			"Malignancy" = "Purples",
 			"Transplant" = "PuRd",
-			"Technology_Dependence" = "YlOrBr"
+			"Technology_Dependence" = "YlOrBr",
+			"criteria" = "YlGn"
 			)
 
 patterns <- c("none", "stripe", "crosshatch", "circle", "stripe", "crosshatch", "stripe")

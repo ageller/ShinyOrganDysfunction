@@ -102,14 +102,14 @@ set_fill_patterns <- function(usedf, col){
 	return(list("patterns" = col_patterns, "angles" = col_angles))
 }
 
-prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
+prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2, df1=NULL, df1m=NULL){
 
 	############################################
 	# percentage within each group given the selections
 	selections <- c(agg1)
 	if (agg2 != "None") selections <- append(selections, agg2)
 
-	df1 <- select_and_summarize(usedf, cols, selections)
+	if (is.null(df1)) df1 <- select_and_summarize(usedf, cols, selections)
 	psdf <- calculate_pct_and_sig(df1, cols, selections, FALSE)
 	outdf <- cbind_and_pivot(psdf, plot_type, selections)
 	outdf <- add_tooltips(outdf, selections)
@@ -118,7 +118,7 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2){
 	# mortality percentage given the selections
 	selectionsm <- selections
 	if (agg1 != "Outcome" && agg2 != "Outcome") selectionsm <- append(selectionsm, "Outcome")
-	df1m <- select_and_summarize(usedf, cols, selectionsm)
+	if (is.null(df1m)) df1m <- select_and_summarize(usedf, cols, selectionsm)
 	psdfm <- calculate_pct_and_sig(df1m, cols, selectionsm, TRUE)
 	outdfm <- cbind_and_pivot(psdfm, plot_type, selectionsm)
 	outdfm <- add_tooltips(outdfm, selections)
@@ -180,10 +180,10 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 	return(list("f" = f, "fm" = fm))	
 }
 
-generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2){
+generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2, df1=NULL , df1m=NULL){
 
 
-	bardf = prep_bar_chart_data(usedf, plot_type, cols, agg1, agg2)
+	bardf = prep_bar_chart_data(usedf, plot_type, cols, agg1, agg2, df1, df1m)
 	usedf1 = bardf$df
 	usedf1m = bardf$dfm
 	agg2_patterns = bardf$patterns
@@ -199,10 +199,12 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 
 	# set the plot range if not brushed
 	if (is.null(range1$x)) range1$x <- c(0.5, length(cols)+0.5)
-	if (is.null(range1$y)) range1$y <- c(0, min(1.1*max((usedf1$percent + usedf1$sig_percent), na.rm=TRUE), 100.))
+	#if (is.null(range1$y)) range1$y <- c(0, min(1.1*max((usedf1$percent + usedf1$sig_percent), na.rm=TRUE), 100.))
+	if (is.null(range1$y)) range1$y <- c(0, 100.)
 
 	if (is.null(range2$x)) range2$x <- c(0.5, length(cols)+0.5)
-	if (is.null(range2$y)) range2$y <- c(0, min(1.1*max((usedf1m$percent + usedf1m$sig_percent), na.rm=TRUE), 100.))
+	#if (is.null(range2$y)) range2$y <- c(0, min(1.1*max((usedf1m$percent + usedf1m$sig_percent), na.rm=TRUE), 100.))
+	if (is.null(range2$y)) range2$y <- c(0, 100.)
 
 	# I don't think there's a clean way to do this without an if statement
 	ifelse(agg2 == "None",
