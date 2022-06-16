@@ -1,5 +1,5 @@
 # Sidebar panel for inputs 
-# for the organ failure figure
+# for the organ dysfunction bar charts
  
 organ_bar_sidebar <- function(id){
 

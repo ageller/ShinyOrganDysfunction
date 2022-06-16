@@ -56,7 +56,7 @@ foo <- sapply(foo,"[[", 2)
 organs <- unlist(unique(foo), use.names = FALSE)
 organs <- organs[!organs %in% 'Count']
 
-# for each organ type create a new column that has "No" or "Yes" if any day had that failure
+# for each organ type create a new column that has "No" or "Yes" if any day had that dysfunction
 for (cc in organs){
 	foo <- select(select(df, contains(cc)), contains("PODIUM"))
 	df[[cc]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, "No", "Yes")

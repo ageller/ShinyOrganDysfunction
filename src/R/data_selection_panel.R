@@ -50,10 +50,10 @@ data_selection_sidebar <- function(id){
 						selected = "Any",
 						inline = TRUE
 					),
-					p("The buttons below select patients with a specific organ failure on any day."),
+					p("The buttons below select patients with a specific organ dysfunction on any day."),
 					lapply(1:length(organs), function(i) {
 						oo <- organs[i]
-						radioButtons(ns(paste0(oo, "Radiobutton")), paste("Had", oo, "failure"),
+						radioButtons(ns(paste0(oo, "Radiobutton")), paste("Had", oo, "dysfunction"),
 							choices = as.factor(c("Any", "No", "Yes")),
 							selected = "Any",
 							inline = TRUE

@@ -26,12 +26,16 @@ calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
 		# calculate percentages and errors
 		pctdf <- died
 		sigdf <- died
-		
+		numdf <- died
+		dendf <- died
+
 	} else {
 
 		# calculate percentages and errors
 		pctdf <- usedf
 		sigdf <- usedf
+		numdf <- usedf
+		dendf <- usedf
 	}
 	
 	# calculate the percentage and error (using error propagation)
@@ -43,11 +47,13 @@ calculate_pct_and_sig <- function(usedf, cols, selections, mortality) {
 		ifelse(mortality, den <- lived[cc] + died[cc], den <- usedf$Nsample)
 		pctdf[cc] <- round(100.*( num/den ), ndigits)
 		sigdf[cc] <- round(100.*( num/den**2. + (num/den**2.)**2.*den )**0.5, ndigits)
+		numdf[cc] <- num
+		dendf[cc] <- den
 		# assuming no error on denominator
 		#sigdf1[cc] <- 100.*num**0.5/den
 	}
 	
-	return(list("pct" = pctdf, "sig" = sigdf))
+	return(list("pct" = pctdf, "sig" = sigdf, "num" = numdf, "den" = dendf))
 }
 
 cbind_and_pivot <- function(psdf, plot_type, selections, mortality){
@@ -56,6 +62,8 @@ cbind_and_pivot <- function(psdf, plot_type, selections, mortality){
 
 	pctdf <- psdf$pct
 	sigdf <- psdf$sig
+	numdf <- psdf$num
+	dendf <- psdf$den
 
 	out <- pctdf
 	out <- pivot_longer(data = out,
@@ -68,12 +76,21 @@ cbind_and_pivot <- function(psdf, plot_type, selections, mortality){
 	   cols = -append(selections, c("Nsample")),
 	   names_to = plot_type,
 	   values_to = "sig_percent")
+	
+	tmpdfn <- pivot_longer(data = numdf,
+	   cols = -append(selections, c("Nsample")),
+	   names_to = plot_type,
+	   values_to = "number")
 
-	out <- cbind(out, sig_percent=tmpdf$sig_percent)
+	tmpdfd <- pivot_longer(data = dendf,
+	   cols = -append(selections, c("Nsample")),
+	   names_to = plot_type,
+	   values_to = "sample")
+	
+	out <- cbind(out, sig_percent=tmpdf$sig_percent, number=tmpdfn$number, sample=tmpdfd$sample)
 
 	# select the columns we want
-	out <- out[, append(selections, c(plot_type, "percent", "sig_percent"))]
-
+	out <- out[, append(selections, c(plot_type, "percent", "sig_percent", "number", "sample"))]
 
 
 	return(out)
@@ -86,7 +103,9 @@ add_tooltips <- function(usedf, selections){
 	for (ss in selections){
 		text <- paste0(text, '<b>',str_replace_all(ss,'_',' '), ': </b>', usedf[[ss]], '<br/>')
 	}
-	usedf$tooltip <- paste0(text, '<b>percent : </b>',usedf$percent, ' +/- ', usedf$sig_percent,' %')
+	usedf$tooltip <- paste0(text, '<b>percent : </b>',usedf$percent, ' +/- ', usedf$sig_percent,' %',
+		'<br/><b>number : </b>', usedf$number,
+		'<br/><b>sample size: </b>', usedf$sample)
 
 	return(usedf)
 }

@@ -1,21 +1,21 @@
 # server module 
-# for the orgain failure figure
+# for the orgain dysfunction figure
 
-organ_failure_server <- function(id){
+organ_dysfunction_server <- function(id){
 
 	moduleServer(
 		id,
 		function(input, output, session){
 
 			# generate two separate plots, each will be zoomable
-			organ_failure_ranges_overall <- reactiveValues(x = NULL, y = NULL)
-			organ_failure_ranges_mortality <- reactiveValues(x = NULL, y = NULL)
-			organ_failure_plots <- reactiveValues(overall = NULL, mortality = NULL, summary = NULL)
+			organ_dysfunction_ranges_overall <- reactiveValues(x = NULL, y = NULL)
+			organ_dysfunction_ranges_mortality <- reactiveValues(x = NULL, y = NULL)
+			organ_dysfunction_plots <- reactiveValues(overall = NULL, mortality = NULL, summary = NULL)
 
 
 			# Plot title
-			organ_failure_plot_title <- function(){
-				txt <- paste("Organ failure type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
+			organ_dysfunction_plot_title <- function(){
+				txt <- paste("Organ dysfunction type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
 				if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
 				return(txt)
 			}
@@ -23,24 +23,24 @@ organ_failure_server <- function(id){
 			# function to create the plots
 			create_plot <- function(usedf){
 				# check if there is any brushing for zoom
-				brush_overall <- input$organ_failure_bar_plot_overall_brush
+				brush_overall <- input$organ_dysfunction_bar_plot_overall_brush
 				if (!is.null(brush_overall)) {
-					organ_failure_ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
-					organ_failure_ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
+					organ_dysfunction_ranges_overall$x <- c(brush_overall$xmin, brush_overall$xmax)
+					organ_dysfunction_ranges_overall$y <- c(brush_overall$ymin, brush_overall$ymax)
 
 				} else {
-					organ_failure_ranges_overall$x <- NULL
-					organ_failure_ranges_overall$y <- NULL
+					organ_dysfunction_ranges_overall$x <- NULL
+					organ_dysfunction_ranges_overall$y <- NULL
 				}
 
-				brush_mortality <- input$organ_failure_bar_plot_mortality_brush
+				brush_mortality <- input$organ_dysfunction_bar_plot_mortality_brush
 				if (!is.null(brush_mortality)) {
-					organ_failure_ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
-					organ_failure_ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
+					organ_dysfunction_ranges_mortality$x <- c(brush_mortality$xmin, brush_mortality$xmax)
+					organ_dysfunction_ranges_mortality$y <- c(brush_mortality$ymin, brush_mortality$ymax)
 
 				} else {
-					organ_failure_ranges_mortality$x <- NULL
-					organ_failure_ranges_mortality$y <- NULL
+					organ_dysfunction_ranges_mortality$x <- NULL
+					organ_dysfunction_ranges_mortality$y <- NULL
 				}
 
 				# these were created as Yes/No factors, so convert them to numeric for the bar plot
@@ -51,7 +51,7 @@ organ_failure_server <- function(id){
 					usedf[, oo] <- as.numeric(usedf[, oo])
 				}
 
-				generate_bar_plot(usedf, "Organ_Failure_Type", organs, input$organ_bar_agg1, input$organ_bar_agg2, organ_failure_ranges_overall, organ_failure_ranges_mortality)
+				generate_bar_plot(usedf, "Organ_Dysfunction_Type", organs, input$organ_bar_agg1, input$organ_bar_agg2, organ_dysfunction_ranges_overall, organ_dysfunction_ranges_mortality)
 
 			}
 
@@ -76,9 +76,9 @@ organ_failure_server <- function(id){
 
 					# create the plots and table and save them in the plots object
 					foo <- create_plot(usedf)
-					organ_failure_plots$overall <- foo$overall
-					organ_failure_plots$mortality <- foo$mortality
-					organ_failure_plots$summary <- create_summary_table(usedf)
+					organ_dysfunction_plots$overall <- foo$overall
+					organ_dysfunction_plots$mortality <- foo$mortality
+					organ_dysfunction_plots$summary <- create_summary_table(usedf)
 
 				})
 			})
@@ -115,12 +115,12 @@ organ_failure_server <- function(id){
 
 
 			observe({
-				hover <- input$organ_failure_bar_plot_mortality_hover
+				hover <- input$organ_dysfunction_bar_plot_mortality_hover
 				reset <- TRUE
 				if (is.numeric(hover$y)){
 
 					# find the nearest bar and only show if the cursor is within the bar
-					bar_plot_data <- layer_data(organ_failure_plots$mortality, i = 1L)
+					bar_plot_data <- layer_data(organ_dysfunction_plots$mortality, i = 1L)
 					foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 					if (!is.na(bar_plot_data$y[[foo]])){
@@ -131,7 +131,7 @@ organ_failure_server <- function(id){
 								bar_index_mortality <<- foo
 
 								# add the tooltip
-								output$organ_failure_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
+								output$organ_dysfunction_bar_plot_mortality_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_mortality]]))
 
 							}
 						} 
@@ -139,18 +139,18 @@ organ_failure_server <- function(id){
 				}
 
 				if (reset) {
-					output$organ_failure_bar_plot_mortality_hover_tooltip <- renderUI("")
+					output$organ_dysfunction_bar_plot_mortality_hover_tooltip <- renderUI("")
 					bar_index_mortality <<- -1
 				} 
 			})
 
 			observe({
-				hover <- input$organ_failure_bar_plot_overall_hover
+				hover <- input$organ_dysfunction_bar_plot_overall_hover
 				reset <- TRUE
 				if (is.numeric(hover$y)){
 
 					# find the nearest bar and only show if the cursor is within the bar
-					bar_plot_data <- layer_data(organ_failure_plots$overall, i = 1L)
+					bar_plot_data <- layer_data(organ_dysfunction_plots$overall, i = 1L)
 					foo <- which.min(abs(bar_plot_data$x - hover$x))
 
 					if (!is.na(bar_plot_data$y[[foo]])){
@@ -162,18 +162,18 @@ organ_failure_server <- function(id){
 								bar_index_overall <<- foo
 
 								# add the tooltip
-								output$organ_failure_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
+								output$organ_dysfunction_bar_plot_overall_hover_tooltip <- renderUI(set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index_overall]]))
 
 								# add the div to highlight the selected bar (not working)
-								# output$organ_failure_bar_plot_overall_hover_div <- renderUI(set_bardiv(hover, bar_plot_data[bar_index_overall,]))
+								# output$organ_dysfunction_bar_plot_overall_hover_div <- renderUI(set_bardiv(hover, bar_plot_data[bar_index_overall,]))
 							}
 						} 
 					} 
 				} 
 
 				if (reset) {
-					output$organ_failure_bar_plot_overall_hover_tooltip <- renderUI("")
-					# output$organ_failure_bar_plot_overall_hover_div <- renderUI("")
+					output$organ_dysfunction_bar_plot_overall_hover_tooltip <- renderUI("")
+					# output$organ_dysfunction_bar_plot_overall_hover_div <- renderUI("")
 					bar_index_overall <<- -1
 				}
 
@@ -198,24 +198,24 @@ organ_failure_server <- function(id){
 			# outputs
 
 			# title
-			output$organ_failure_plot_title <- renderText({
+			output$organ_dysfunction_plot_title <- renderText({
 				input$updatePlot
 				isolate({
-					organ_failure_plot_title()
+					organ_dysfunction_plot_title()
 				})
 			})
 
 			# plots
-			output$organ_failure_bar_plot_mortality <- renderPlot({
+			output$organ_dysfunction_bar_plot_mortality <- renderPlot({
 				input$updatePlot
 				isolate({
-					organ_failure_plots$mortality 
+					organ_dysfunction_plots$mortality 
 				})
 			})
-			output$organ_failure_bar_plot_overall <- renderPlot({
+			output$organ_dysfunction_bar_plot_overall <- renderPlot({
 				input$updatePlot
 				isolate({
-					organ_failure_plots$overall 	
+					organ_dysfunction_plots$overall 	
 				})
 			})
 
@@ -223,7 +223,7 @@ organ_failure_server <- function(id){
 			output$summary_table <- renderUI({
 				input$updatePlot
 				isolate({
-					organ_failure_plots$summary
+					organ_dysfunction_plots$summary
 				})
 			})
 
