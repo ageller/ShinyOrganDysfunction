@@ -105,3 +105,6 @@ ndigits <- 1
 
 # for tooltips
 bar_index <- c("mortality" = -1, "overall" = -1)
+
+# will hold the selected data
+selected_df <- df

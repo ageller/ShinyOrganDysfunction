@@ -25,7 +25,7 @@ organ_dysfunction_criteria_server <- function(id){
 					)
 
 					# take the selection on the data (<<- is "super assign" to update the global variable)
-					usedf <- select_data(input)
+					usedf <- selected_df
 
 					# for a given criteria do the following:
 					# 1. create a temp df that doesn't have the organ columns
@@ -56,15 +56,14 @@ organ_dysfunction_criteria_server <- function(id){
 						df1m <- rbind(df1m, bar)
 					}
 
-					# create the plots and table and save them in the plots object
+					# create the plots and save them in the plots object
 					foo <- generate_bar_plot(usedf, "Organ_Dysfunction_Criteria_Comparison", organs, "criteria", "None", input$organ_dysfunction_criteria_bar_plot_overall_brush, input$organ_dysfunction_criteria_bar_plot_mortality_brush, df1, df1m)
 
 					organ_dysfunction_criteria_plots$overall <- foo$overall
 					organ_dysfunction_criteria_plots$mortality <- foo$mortality
 
 					output$organ_dysfunction_criteria_bar_plot_overall <- renderPlot(organ_dysfunction_criteria_plots$overall)
-					output$organ_dysfunction_criteria_bar_plot_mortality <- renderPlot(organ_dysfunction_criteria_plots$mortality )
-					output$summary_table <- renderUI(create_summary_table(usedf))
+					output$organ_dysfunction_criteria_bar_plot_mortality <- renderPlot(organ_dysfunction_criteria_plots$mortality)
 				})
 			})
 

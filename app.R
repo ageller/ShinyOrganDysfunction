@@ -94,10 +94,10 @@ ui <- fluidPage(
 
 # Define server logic 
 server <- function(input, output, session) {
+	shared_server(namespace)
 	organ_support_server(namespace)
 	organ_dysfunction_server(namespace)
 	organ_dysfunction_criteria_server(namespace)
-	shared_server(namespace)
 }
 
 

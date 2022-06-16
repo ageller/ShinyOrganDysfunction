@@ -31,6 +31,27 @@ shared_server <- function(id){
 					need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
 				)
 			})
+
+			# shared summary table
+			observe({
+				input$updatePlot 
+				isolate({
+
+					# include this here as well so that it doesn't proceed to try to make the plot 
+					# (is there a way to do this without repeating code??)
+					validate(
+						need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
+						need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
+						need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
+					)
+
+					# take the selection on the data (<<- is "super assign" to update the global variable)
+					selected_df <<- select_data(input)
+
+					output$summary_table <- renderUI(create_summary_table(selected_df))
+				})
+			})	
+
 		}
 	)
 }

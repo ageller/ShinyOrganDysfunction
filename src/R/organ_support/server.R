@@ -10,15 +10,6 @@ organ_support_server <- function(id){
 			# generate two separate plots, each will be zoomable
 			organ_support_plots <- reactiveValues(overall = NULL, mortality = NULL)
 
-
-			# Plot title
-			organ_support_plot_title <- function(){
-				txt <- paste("Organ support type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
-				if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
-				return(txt)
-			}
-
-
 			# when button is clicked, select the data and update plots object
 			observe({
 				input$updatePlot 
@@ -34,18 +25,21 @@ organ_support_server <- function(id){
 					)
 
 					# take the selection on the data (<<- is "super assign" to update the global variable)
-					usedf <- select_data(input)
+					usedf <- selected_df
 
-					# create the plots and table and save them in the plots object
+					# create the plots and save them in the plots object
 					foo <- generate_bar_plot(usedf, "Organ_Support_Type", c("Mechanical_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$organ_bar_agg1, input$organ_bar_agg2, input$organ_support_bar_plot_overall_brush, input$organ_support_bar_plot_mortality_brush)
 
 					organ_support_plots$overall <- foo$overall
 					organ_support_plots$mortality <- foo$mortality
 
 					output$organ_support_bar_plot_overall <- renderPlot(organ_support_plots$overall)
-					output$organ_support_bar_plot_mortality <- renderPlot(organ_support_plots$mortality )
-					output$summary_table <- renderUI(create_summary_table(usedf))
-					output$organ_support_plot_title <- renderText(organ_support_plot_title())
+					output$organ_support_bar_plot_mortality <- renderPlot(organ_support_plots$mortality)
+
+					# update the plot title
+					txt <- paste("Organ support type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
+					if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
+					output$organ_support_plot_title <- renderText(txt)
 				})
 			})
 
