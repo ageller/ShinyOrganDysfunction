@@ -69,7 +69,7 @@ data_selection_sidebar <- function(id){
 						selected = "Any",
 						inline = TRUE
 					),
-					radioButtons(ns("transplantRadiobutton"), "Had Tranplant",
+					radioButtons(ns("transplantRadiobutton"), "Had Transplant",
 						append(as.factor("Any"), transplants),
 						selected = "Any",
 						inline = TRUE
