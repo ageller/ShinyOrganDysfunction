@@ -104,5 +104,4 @@ pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 ndigits <- 1
 
 # for tooltips
-bar_index_mortality <- -1
-bar_index_overall <- -1
+bar_index <- c("mortality" = -1, "overall" = -1)

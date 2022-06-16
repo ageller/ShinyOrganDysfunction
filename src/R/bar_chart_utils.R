@@ -199,7 +199,7 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 	return(list("f" = f, "fm" = fm))	
 }
 
-generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2, df1=NULL , df1m=NULL){
+generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, brush1, brush2, df1=NULL , df1m=NULL){
 
 
 	bardf = prep_bar_chart_data(usedf, plot_type, cols, agg1, agg2, df1, df1m)
@@ -215,6 +215,20 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 	############################################
 	# top panel (f1) shows percent in each group
 	# bottom panel (f1m) shows mortality percent in each group
+
+	# use the brush to set the range
+	range1 <- c("x" = NULL, "y" = NULL)
+	range2 <- c("x" = NULL, "y" = NULL)
+	if (!is.null(brush1)) {
+		range1$x <- c(brush1$xmin, brush1$xmax)
+		range1$y <- c(brush1$ymin, brush1$ymax)
+	} 
+
+	#brush2 <- input$organ_support_bar_plot_mortality_brush
+	if (!is.null(brush2)) {
+		range2$x <- c(brush2$xmin, brush2$xmax)
+		range2$y <- c(brush2$ymin, brush2$ymax)
+	} 
 
 	# set the plot range if not brushed
 	if (is.null(range1$x)) range1$x <- c(0.5, length(cols)+0.5)
@@ -265,3 +279,4 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, range1, range2
 	return(list("overall" = f1, "mortality" = f1m))
 
 }
+

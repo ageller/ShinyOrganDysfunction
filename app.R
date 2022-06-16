@@ -32,6 +32,7 @@ source("src/R/organ_dysfunction/mainPanel.R")
 source("src/R/organ_dysfunction_criteria/mainPanel.R")
 
 # modules for the server
+source("src/R/shared_server.R")
 source("src/R/organ_support/server.R")
 source("src/R/organ_dysfunction/server.R")
 source("src/R/organ_dysfunction_criteria/server.R")
@@ -96,6 +97,7 @@ server <- function(input, output, session) {
 	organ_support_server(namespace)
 	organ_dysfunction_server(namespace)
 	organ_dysfunction_criteria_server(namespace)
+	shared_server(namespace)
 }
 
 

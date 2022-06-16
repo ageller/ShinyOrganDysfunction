@@ -52,3 +52,64 @@ select_data <- function(input){
 
 	return(apply_data_selections(df, selections))
 }
+
+# functions for tooltips
+#########################NOTE THIS HAS MORTALITY HARD CODED
+create_tooltip <- function(hover, plot, index){
+	tooltip <- NULL
+	reset <- TRUE
+	if (is.numeric(hover$y)){
+
+		# find the nearest bar and only show if the cursor is within the bar
+		bar_plot_data <- layer_data(plot, i = 1L)
+		foo <- which.min(abs(bar_plot_data$x - hover$x))
+
+		if (!is.na(bar_plot_data$y[[foo]])){
+			if (bar_plot_data$y[[foo]] > hover$y) {
+				reset <- FALSE
+
+				if (foo != bar_index[index]){
+					bar_index[index] <<- foo
+
+					# create the tooltip
+					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index[index]]])
+
+				}
+			} 
+		} 
+	}
+
+	if (reset && bar_index[index] > 0) {
+		bar_index[index] <<- -1
+		tooltip <- ""
+	}
+
+
+	return(tooltip)
+}
+set_tooltip <- function(x,y,content){
+	style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
+					"left:", x, "px; top:", y, "px;")
+
+	# actual tooltip created as wellPanel
+	tooltip <- 	wellPanel(style = style, div(HTML(content)))
+	return(tooltip)	
+}
+set_bardiv <- function(hover, bar_data){
+	# get the bounds
+	#xconv <- hover$coords_css$x/hover$x
+	#print(hover)
+	xconv <- (hover$range$right - hover$range$left)/(hover$domain$right - hover$domain$left)
+	xmin <- (bar_data$xmin - hover$domain$left)*xconv + hover$range$left
+	xmax <- (bar_data$xmax - hover$domain$left)*xconv + hover$range$left
+	print(paste("x", hover$x, "css_x", hover$coords_css$x, "css_x/x",hover$coords_css$x/hover$x,"conv", xconv,"xmin", bar_data$xmin, "xmin_conv", xmin, "width", xmax - xmin))
+	ymin <- hover$coords_css$y + 10
+	ymax <- hover$coords_css$y + 50
+
+	style <- paste0("position:absolute; z-index:100; background-color: rgba(0, 0, 0, 0); border: 4px solid black; border-radius:0;",
+					"left:", xmin, "px; top:", ymin, "px; width:",xmax - xmin, "px; height:", ymax - ymin, "px")
+
+	# actual tooltip created as wellPanel
+	div <- 	wellPanel(style = style, div(""))
+	return(div)	
+}
