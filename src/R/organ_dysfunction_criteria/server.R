@@ -70,12 +70,12 @@ organ_dysfunction_criteria_server <- function(id){
 
 			# for tooltips
 			observe({
-				tooltip <- create_tooltip(input$organ_dysfunction_criteria_bar_plot_mortality_hover, organ_dysfunction_criteria_plots$mortality, "mortality")
+				tooltip <- create_bar_tooltip(input$organ_dysfunction_criteria_bar_plot_mortality_hover, organ_dysfunction_criteria_plots$mortality, "mortality")
 				if (!is.null(tooltip)) output$organ_dysfunction_criteria_bar_plot_mortality_hover_tooltip <- renderUI(tooltip)
 			})
 
 			observe({
-				tooltip <- create_tooltip(input$organ_dysfunction_criteria_bar_plot_overall_hover, organ_dysfunction_criteria_plots$overall, "overall")
+				tooltip <- create_bar_tooltip(input$organ_dysfunction_criteria_bar_plot_overall_hover, organ_dysfunction_criteria_plots$overall, "overall")
 				if (!is.null(tooltip)) output$organ_dysfunction_criteria_bar_plot_overall_hover_tooltip <- renderUI(tooltip)
 			})
 

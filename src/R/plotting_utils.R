@@ -105,7 +105,7 @@ add_tooltips <- function(usedf, selections){
 	}
 	usedf$tooltip <- paste0(text, '<b>percent : </b>',usedf$percent, ' +/- ', usedf$sig_percent,' %',
 		'<br/><b>number : </b>', usedf$number,
-		'<br/><b>sample size: </b>', usedf$sample)
+		'<br/><b>sample size : </b>', usedf$sample)
 
 	return(usedf)
 }
@@ -287,25 +287,27 @@ generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, b
 	psdf <- calculate_pct_and_sig(usedf, cols, selections, FALSE)
 	outdf <- cbind_and_pivot(psdf, plot_type, selections)
 	outdf$day <- as.numeric(outdf$day)
+	outdf <- add_tooltips(outdf, c("day", plot_type, "Outcome"))
 
 	#mortality
 	psdfm <- calculate_pct_and_sig(usedf, cols, selections, TRUE)
 	outdfm <- cbind_and_pivot(psdfm, plot_type, selections)
 	outdfm$day <- as.numeric(outdfm$day)
+	outdfm <- add_tooltips(outdfm, c("day", plot_type))
 
 	############################################
 	# f1 shows percent in each group
 	# f1m shows mortality percent in each group
 
 	range1 <- set_plot_range(brush1, 0.9, 7.1, 0, 100)
-	range2 <- set_plot_range(brush2, 0.9, 7.1, 0, 50)
+	range2 <- set_plot_range(brush2, 0.9, 7.1, 0, 100)
 
 
 	f1 <- ggplot(outdf, aes_string(x = "day", y = "percent", color = plot_type)) +
+		geom_point(aes(tooltip=tooltip), size=4) + 
+		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
 		geom_line(aes(linetype = Outcome), size=1) + 
 		scale_linetype_manual(values=c("solid", "longdash"))+
-		geom_point(size=4) + 
-		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
 		scale_color_manual(name = paste(plot_type), values = plot_colors) +
 		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
 		labs(x = "Day", y = paste("Overall Percentage")) + 
@@ -314,9 +316,9 @@ generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, b
 		theme(legend.position = "bottom")
 
 	f1m <- ggplot(outdfm, aes_string(x = "day", y = "percent", color = plot_type)) +
-		geom_line(size=1) + 
-		geom_point(size=4) + 
+		geom_point(aes(tooltip=tooltip), size=4) + 
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
+		geom_line(size=1) + 
 		scale_color_manual(name = paste(plot_type), values = plot_colors) +
 		coord_cartesian(xlim = range2$x, ylim = range2$y, expand = FALSE) + 
 		labs(x = "Day", y = paste("Mortality Percentage")) + 

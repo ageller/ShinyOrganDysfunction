@@ -54,33 +54,67 @@ select_data <- function(input){
 }
 
 # functions for tooltips
-#########################NOTE THIS HAS MORTALITY HARD CODED
-create_tooltip <- function(hover, plot, index){
+create_bar_tooltip <- function(hover, plot, index){
 	tooltip <- NULL
 	reset <- TRUE
-	if (is.numeric(hover$y)){
+	if (is.numeric(hover$y) && is.numeric(hover$x)){
 
 		# find the nearest bar and only show if the cursor is within the bar
-		bar_plot_data <- layer_data(plot, i = 1L)
-		foo <- which.min(abs(bar_plot_data$x - hover$x))
+		plot_data <- layer_data(plot, i = 1L)
+		foo <- which.min(abs(plot_data$x - hover$x))
 
-		if (!is.na(bar_plot_data$y[[foo]])){
-			if (bar_plot_data$y[[foo]] > hover$y) {
+		if (!is.na(plot_data$y[[foo]])){
+			if (plot_data$y[[foo]] > hover$y) {
 				reset <- FALSE
 
-				if (foo != bar_index[index]){
-					bar_index[index] <<- foo
+				if (foo != plot_element_index[index]){
+					plot_element_index[index] <<- foo
 
 					# create the tooltip
-					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, bar_plot_data$tooltip[[bar_index[index]]])
+					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]])
 
 				}
 			} 
 		} 
 	}
 
-	if (reset && bar_index[index] > 0) {
-		bar_index[index] <<- -1
+	if (reset && plot_element_index[index] > 0) {
+		plot_element_index[index] <<- -1
+		tooltip <- ""
+	}
+
+
+	return(tooltip)
+}
+create_point_tooltip <- function(hover, plot, index, near=0.001){
+	tooltip <- NULL
+	reset <- TRUE
+	if (is.numeric(hover$y) && is.numeric(hover$x)){
+
+		# find the nearest point and only show if the cursor is near enough to the point
+		plot_data <- layer_data(plot, i = 1L)
+		xrng <- hover$domain$right - hover$domain$left
+		yrng <- hover$domain$top - hover$domain$bottom
+		dist <- ((plot_data$x - hover$x)/xrng)**2 + ((plot_data$y - hover$y)/yrng)**2
+		foo <- which.min(dist)
+
+		if (!is.na(plot_data$y[[foo]])){
+			if (dist[[foo]] < near) {
+				reset <- FALSE
+
+				if (foo != plot_element_index[index]){
+					plot_element_index[index] <<- foo
+
+					# create the tooltip
+					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]])
+
+				}
+			} 
+		} 
+	}
+
+	if (reset && plot_element_index[index] > 0) {
+		plot_element_index[index] <<- -1
 		tooltip <- ""
 	}
 
@@ -95,7 +129,9 @@ set_tooltip <- function(x,y,content){
 	tooltip <- 	wellPanel(style = style, div(HTML(content)))
 	return(tooltip)	
 }
+
 set_bardiv <- function(hover, bar_data){
+	#currently unused
 	# get the bounds
 	#xconv <- hover$coords_css$x/hover$x
 	#print(hover)
