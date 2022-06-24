@@ -33,7 +33,7 @@ organ_dysfunction_criteria_server <- function(id){
 					# 3. summarize for the different organ types and add column for the criteria
 					# then append these summary dfs for all the criteria and run through the rest of my functions
 
-					usedf <- df[ , !(names(df) %in% organs)]
+					usedf <- usedf[ , !(names(usedf) %in% organs)]
 
 					df1 <- data.frame(matrix(ncol = length(organs)+1, nrow = 0))
 					df1m <- data.frame(matrix(ncol = length(organs)+2, nrow = 0))

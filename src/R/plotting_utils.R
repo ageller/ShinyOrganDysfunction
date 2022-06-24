@@ -199,6 +199,23 @@ double_aggregate_bar_plot <- function(usedf, usedfm, plot_type, agg1, agg2, agg2
 	return(list("f" = f, "fm" = fm))	
 }
 
+set_plot_range <- function(brush, xmin, xmax, ymin, ymax){
+
+	range <- c("x" = NULL, "y" = NULL)
+
+	# use the brush to set the range
+	if (!is.null(brush)) {
+		range$x <- c(brush$xmin, brush$xmax)
+		range$y <- c(brush$ymin, brush$ymax)
+	} 
+
+	# set the plot range if not brushed
+	if (is.null(range$x)) range$x <- c(xmin, xmax)
+	if (is.null(range$y)) range$y <- c(ymin, ymax)
+
+	return(range)
+}
+
 generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, brush1, brush2, df1=NULL , df1m=NULL){
 
 
@@ -213,31 +230,11 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, brush1, brush2
 	#WHY DO I USE position_dodge(0.9) IN THE ERROBAR PLOT??
 
 	############################################
-	# top panel (f1) shows percent in each group
-	# bottom panel (f1m) shows mortality percent in each group
+	# f1 shows percent in each group
+	# f1m shows mortality percent in each group
 
-	# use the brush to set the range
-	range1 <- c("x" = NULL, "y" = NULL)
-	range2 <- c("x" = NULL, "y" = NULL)
-	if (!is.null(brush1)) {
-		range1$x <- c(brush1$xmin, brush1$xmax)
-		range1$y <- c(brush1$ymin, brush1$ymax)
-	} 
-
-	#brush2 <- input$organ_support_bar_plot_mortality_brush
-	if (!is.null(brush2)) {
-		range2$x <- c(brush2$xmin, brush2$xmax)
-		range2$y <- c(brush2$ymin, brush2$ymax)
-	} 
-
-	# set the plot range if not brushed
-	if (is.null(range1$x)) range1$x <- c(0.5, length(cols)+0.5)
-	#if (is.null(range1$y)) range1$y <- c(0, min(1.1*max((usedf1$percent + usedf1$sig_percent), na.rm=TRUE), 100.))
-	if (is.null(range1$y)) range1$y <- c(0, 100.)
-
-	if (is.null(range2$x)) range2$x <- c(0.5, length(cols)+0.5)
-	#if (is.null(range2$y)) range2$y <- c(0, min(1.1*max((usedf1m$percent + usedf1m$sig_percent), na.rm=TRUE), 100.))
-	if (is.null(range2$y)) range2$y <- c(0, 100.)
+	range1 <- set_plot_range(brush1, 0.5, length(cols)+0.5, 0, 100)
+	range2 <- set_plot_range(brush2, 0.5, length(cols)+0.5, 0, 100)
 
 	# I don't think there's a clean way to do this without an if statement
 	ifelse(agg2 == "None",
@@ -280,3 +277,53 @@ generate_bar_plot <- function(usedf, plot_type, cols, agg1, agg2, brush1, brush2
 
 }
 
+
+generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, brush1, brush2){
+
+	selections <- c("day", "Outcome")
+
+	#percentage
+
+	psdf <- calculate_pct_and_sig(usedf, cols, selections, FALSE)
+	outdf <- cbind_and_pivot(psdf, plot_type, selections)
+	outdf$day <- as.numeric(outdf$day)
+
+	#mortality
+	psdfm <- calculate_pct_and_sig(usedf, cols, selections, TRUE)
+	outdfm <- cbind_and_pivot(psdfm, plot_type, selections)
+	outdfm$day <- as.numeric(outdfm$day)
+
+	############################################
+	# f1 shows percent in each group
+	# f1m shows mortality percent in each group
+
+	range1 <- set_plot_range(brush1, 0.9, 7.1, 0, 100)
+	range2 <- set_plot_range(brush2, 0.9, 7.1, 0, 50)
+
+
+	f1 <- ggplot(outdf, aes_string(x = "day", y = "percent", color = plot_type)) +
+		geom_line(aes(linetype = Outcome), size=1) + 
+		scale_linetype_manual(values=c("solid", "longdash"))+
+		geom_point(size=4) + 
+		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
+		scale_color_manual(name = paste(plot_type), values = plot_colors) +
+		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
+		labs(x = "Day", y = paste("Overall Percentage")) + 
+		scale_x_continuous(breaks = seq(0,7,1)) +
+		theme_bw() + 
+		theme(legend.position = "bottom")
+
+	f1m <- ggplot(outdfm, aes_string(x = "day", y = "percent", color = plot_type)) +
+		geom_line(size=1) + 
+		geom_point(size=4) + 
+		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
+		scale_color_manual(name = paste(plot_type), values = plot_colors) +
+		coord_cartesian(xlim = range2$x, ylim = range2$y, expand = FALSE) + 
+		labs(x = "Day", y = paste("Mortality Percentage")) + 
+		scale_x_continuous(breaks = seq(0,7,1)) +
+		theme_bw() + 
+		theme(legend.position = "none")
+
+	return(list("overall" = f1, "mortality" = f1m))
+
+}

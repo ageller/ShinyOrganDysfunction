@@ -20,22 +20,25 @@ source("src/R/init.R")
 source("src/R/utils.R")
 
 # functions for creating the bar charts 
-source("src/R/bar_chart_utils.R")
+source("src/R/plotting_utils.R")
 
 # modules for the ui
 source("src/R/data_selection_panel.R")
 source("src/R/update_plot_panel.R")
 source("src/R/organ_bar_chart_sidebarPanel.R")
 source("src/R/organ_dysfunction_criteria/sidebarPanel.R")
+source("src/R/organ_dysfunction_timeseries/sidebarPanel.R")
 source("src/R/organ_support/mainPanel.R")
 source("src/R/organ_dysfunction/mainPanel.R")
 source("src/R/organ_dysfunction_criteria/mainPanel.R")
+source("src/R/organ_dysfunction_timeseries/mainPanel.R")
 
 # modules for the server
 source("src/R/shared_server.R")
 source("src/R/organ_support/server.R")
 source("src/R/organ_dysfunction/server.R")
 source("src/R/organ_dysfunction_criteria/server.R")
+source("src/R/organ_dysfunction_timeseries/server.R")
 
 # everything will be on the same namespace
 namespace <- "Nelson"
@@ -65,23 +68,28 @@ ui <- fluidPage(
 		data_selection_sidebar(namespace),
 		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", organ_bar_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==3", organ_dysfunction_criteria_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==4", organ_dysfunction_timeseries_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 	),
 
 	mainPanel(
 		tabsetPanel(
 			id = "mainPanelTabSelected",
-			tabPanel("Organ Support Type",
+			tabPanel("Support Type",
 				value=1, 
 				organ_support_main(namespace),
 			),
-			tabPanel("Organ Dysfunction Type",
+			tabPanel("Dysfunction Type",
 				value=2, 
 				organ_dysfunction_main(namespace)
 			),
-			tabPanel("Organ Dysfunction Criteria",
+			tabPanel("Dysfunction Criteria",
 				value=3, 
 				organ_dysfunction_criteria_main(namespace)
+			),
+			tabPanel("Over Time",
+				value=4, 
+				organ_dysfunction_timeseries_main(namespace)
 			),
 		),
 		htmlOutput(ns("summary_table"))
@@ -98,6 +106,7 @@ server <- function(input, output, session) {
 	organ_support_server(namespace)
 	organ_dysfunction_server(namespace)
 	organ_dysfunction_criteria_server(namespace)
+	organ_dysfunction_timeseries_server(namespace)
 }
 
 

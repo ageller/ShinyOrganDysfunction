@@ -95,6 +95,19 @@ colors = c("Age_Group" = "Blues",
 			"criteria" = "YlGn"
 			)
 
+# define standard colors for each organ
+organ_colors = c("Resp" = "darkblue", 
+            "CV" = "maroon",
+            "Hepatic" = "lightgoldenrod3",
+            "Coag" = "purple",
+            "Heme" = "firebrick2",
+            "Renal" = "darkgreen",
+            "Endo" = "hotpink",
+            "Immuno" = "dimgrey"
+            )
+
+days <- c("1","2","3","4","5","6","7")
+
 patterns <- c("none", "stripe", "crosshatch", "circle", "stripe", "crosshatch", "stripe")
 pattern_angles <- c(0, 45, 45, 0, 0, 0, -45)
 #patterns <- c("stripe", "none", "crosshatch", "circle", "image", "placeholder", "magick", "gradient", "plasma")

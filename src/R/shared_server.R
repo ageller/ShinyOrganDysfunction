@@ -32,7 +32,7 @@ shared_server <- function(id){
 				)
 			})
 
-			# shared summary table
+			# take a subset of the data and create the shared summary table 
 			observe({
 				input$updatePlot 
 				isolate({
