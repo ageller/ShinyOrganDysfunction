@@ -57,6 +57,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 								col2 <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, input$organ_dysfunction_timeseries_sankey_organs_radio, paste0("Day",dd2), sep = "_")
 								#loop through scores again to find the scores for the following day
 								for (ss2 in scores){
+									# ########## TO DO ############### This needs some check to make sure that the criteria as the given organ
 									foo <- filter(usedf, usedf[[col1]] == ss1 & usedf[[col2]] == ss2 & usedf$Outcome == oo)
 									#print(paste(col1, col2, ss1, ss2, oo, nrow(foo)))
 									if (nrow(foo) > 0){
@@ -107,7 +108,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 
 								// add the labels back in but centered 
 								//https://stackoverflow.com/questions/72770709/r-align-and-center-text-using-foreignobject-and-sankeynetwork
-								d3.selectAll(".node").filter(d => (d.name != "Lived" && d.name != "Died"))
+								d3.selectAll(".node").filter(d => (d.name != "Lived" && d.name != "Died" && d.dy > 0))
 									.append("foreignObject")
 									.attr("width",  d => Math.max(d.dx, 40))
 									.attr("height", d => Math.max(d.dy, 20))
