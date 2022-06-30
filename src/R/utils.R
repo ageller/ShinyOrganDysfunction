@@ -35,7 +35,7 @@ apply_data_selections <- function(usedf, selections){
 
 
 # function to compile all the selections and apply them
-select_data <- function(input){
+select_data <- function(usedf, input){
 	selections <- list("Age_Group" = input$AgeGroupCheckbox,
 		"Gender" = input$GenderCheckbox,
 		"Season_Admission" = input$SeasonCheckbox,
@@ -50,7 +50,7 @@ select_data <- function(input){
 		selections[[oo]] <- c(input[[paste0(oo, "Radiobutton")]])
 	}
 
-	return(apply_data_selections(df, selections))
+	return(apply_data_selections(usedf, selections))
 }
 
 # functions for tooltips

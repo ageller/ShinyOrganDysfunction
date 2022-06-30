@@ -13,6 +13,9 @@ library(gginnards)
 #library(ggiraph)
 #library(plotly)
 
+library(networkD3)
+library(htmlwidgets)
+
 # read in and manipulate the initial data and set various global quantities
 source("src/R/init.R")
 
@@ -26,19 +29,22 @@ source("src/R/plotting_utils.R")
 source("src/R/data_selection_panel.R")
 source("src/R/update_plot_panel.R")
 source("src/R/organ_bar_chart_sidebarPanel.R")
-source("src/R/organ_dysfunction_criteria/sidebarPanel.R")
-source("src/R/organ_dysfunction_timeseries/sidebarPanel.R")
-source("src/R/organ_support/mainPanel.R")
-source("src/R/organ_dysfunction/mainPanel.R")
-source("src/R/organ_dysfunction_criteria/mainPanel.R")
-source("src/R/organ_dysfunction_timeseries/mainPanel.R")
+source("src/R/organ_dysfunction_criteria_bar/sidebarPanel.R")
+source("src/R/organ_dysfunction_timeseries_bar/sidebarPanel.R")
+source("src/R/organ_dysfunction_timeseries_sankey/sidebarPanel.R")
+source("src/R/organ_support_bar/mainPanel.R")
+source("src/R/organ_dysfunction_bar/mainPanel.R")
+source("src/R/organ_dysfunction_criteria_bar/mainPanel.R")
+source("src/R/organ_dysfunction_timeseries_bar/mainPanel.R")
+source("src/R/organ_dysfunction_timeseries_sankey/mainPanel.R")
 
 # modules for the server
 source("src/R/shared_server.R")
-source("src/R/organ_support/server.R")
-source("src/R/organ_dysfunction/server.R")
-source("src/R/organ_dysfunction_criteria/server.R")
-source("src/R/organ_dysfunction_timeseries/server.R")
+source("src/R/organ_support_bar/server.R")
+source("src/R/organ_dysfunction_bar/server.R")
+source("src/R/organ_dysfunction_criteria_bar/server.R")
+source("src/R/organ_dysfunction_timeseries_bar/server.R")
+source("src/R/organ_dysfunction_timeseries_sankey/server.R")
 
 # everything will be on the same namespace
 namespace <- "Nelson"
@@ -50,14 +56,25 @@ ui <- fluidPage(
 	useShinyjs(), 
 
 	# change the color for the error messages
+	# change the style for inline checkboxes that cover two lines
 	tags$head(
 		tags$style(HTML("
 			.shiny-output-error-validation {
 				color: #ff0000;
 				font-style: italic;
 			}
+			.checkbox-inline { 
+					margin-left: 0px;
+					margin-right: 10px;
+			}
+			.checkbox-inline+.checkbox-inline {
+					margin-left: 0px;
+					margin-right: 10px;
+			}
 		"))
 	),
+
+
 
 	# App title 
 	headerPanel("Pediatric Organ Dysfunction Explorer"),
@@ -69,27 +86,32 @@ ui <- fluidPage(
 		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", organ_bar_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==3", organ_dysfunction_criteria_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==4", organ_dysfunction_timeseries_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==5", organ_dysfunction_timeseries_sankey_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 	),
 
 	mainPanel(
 		tabsetPanel(
 			id = "mainPanelTabSelected",
-			tabPanel("Support Type",
+			tabPanel("Support Type (bar)",
 				value=1, 
 				organ_support_main(namespace),
 			),
-			tabPanel("Dysfunction Type",
+			tabPanel("Dysfunction Type (bar)",
 				value=2, 
 				organ_dysfunction_main(namespace)
 			),
-			tabPanel("Dysfunction Criteria",
+			tabPanel("Dysfunction Criteria (bar)",
 				value=3, 
 				organ_dysfunction_criteria_main(namespace)
 			),
-			tabPanel("Over Time",
+			tabPanel("Dysfunction Over Time (line)",
 				value=4, 
 				organ_dysfunction_timeseries_main(namespace)
+			),
+			tabPanel("Score Over Time (sankey)",
+				value=5, 
+				organ_dysfunction_timeseries_sankey_main(namespace)
 			),
 		),
 		htmlOutput(ns("summary_table"))
@@ -107,6 +129,7 @@ server <- function(input, output, session) {
 	organ_dysfunction_server(namespace)
 	organ_dysfunction_criteria_server(namespace)
 	organ_dysfunction_timeseries_server(namespace)
+	organ_dysfunction_timeseries_sankey_server(namespace)
 }
 
 

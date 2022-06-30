@@ -307,13 +307,13 @@ generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, b
 		geom_point(aes(tooltip=tooltip), size=4) + 
 		geom_errorbar(aes(ymin = percent - sig_percent, ymax = percent + sig_percent), width=.05) +
 		geom_line(aes(linetype = Outcome), size=1) + 
-		scale_linetype_manual(values=c("solid", "longdash"))+
+		scale_linetype_manual(values=c("solid", "dashed"))+
 		scale_color_manual(name = paste(plot_type), values = plot_colors) +
 		coord_cartesian(xlim = range1$x, ylim = range1$y, expand = FALSE) + 
 		labs(x = "Day", y = paste("Overall Percentage")) + 
 		scale_x_continuous(breaks = seq(0,7,1)) +
 		theme_bw() + 
-		theme(legend.position = "bottom")
+		theme(legend.position = "bottom", legend.key.size =  unit(0.5, "in"))
 
 	f1m <- ggplot(outdfm, aes_string(x = "day", y = "percent", color = plot_type)) +
 		geom_point(aes(tooltip=tooltip), size=4) + 
@@ -328,4 +328,23 @@ generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, b
 
 	return(list("overall" = f1, "mortality" = f1m))
 
+}
+
+
+generate_sankey_plot <- function(nodes, links){
+	# can I allow zooming??
+
+	# add this so that I can color all the nodes gray
+	nodes$group <- as.factor(c("nodeGroup"))
+
+	my_color <- 'd3.scaleOrdinal().domain(["Lived", "Died", "nodeGroup"]) .range(["steelblue", "red", "grey"])'
+
+	fig <- sankeyNetwork(Links = links, Nodes = nodes,
+		Source = "source", Target = "target",
+		Value = "number", NodeID = "name", LinkGroup="Outcome", NodeGroup="group",
+		fontSize= 12, nodeWidth = 10, colourScale = my_color, iterations = 0)
+
+
+
+	return(fig)
 }

@@ -46,7 +46,8 @@ shared_server <- function(id){
 					)
 
 					# take the selection on the data (<<- is "super assign" to update the global variable)
-					selected_df <<- select_data(input)
+					selected_df <<- select_data(df, input)
+					selected_dfFull <<- select_data(dfFull, input)
 
 					output$summary_table <- renderUI(create_summary_table(selected_df))
 				})

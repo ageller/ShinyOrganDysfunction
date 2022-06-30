@@ -21,7 +21,8 @@ organ_dysfunction_timeseries_server <- function(id){
 						need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
 						need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
 						need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
-						need(input$organ_dysfunction_criteria_checkbox, message = 'Please select at least one day.'),
+						need(input$organ_dysfunction_timeseries_criteria_checkbox, message = 'Please select at least one criteria'),
+						need(input$organ_dysfunction_timeseries_organs_checkbox, message = 'Please select at least one organ.'),
 					)
 
 					# take the selection on the data
@@ -35,25 +36,25 @@ organ_dysfunction_timeseries_server <- function(id){
 					# 5. subtract from Ntotal the number of patients who were not alive on that day
 					# 6. run through the rest of my functions
 
-					df1 <- data.frame(matrix(ncol = length(organs)+2, nrow = 0))
+					df1 <- data.frame(matrix(ncol = length(input$organ_dysfunction_timeseries_organs_checkbox)+2, nrow = 0))
 
 					for (dd in days){
 
 						# for each organ type create a new column that has 0 or 1 if it had a failure on that day
-						for (oo in organs){
-							foo <- select(usedf, matches(paste(input$organ_dysfunction_criteria_checkbox,oo,paste0("Day", dd), sep="_")))
+						for (oo in input$organ_dysfunction_timeseries_organs_checkbox){
+							foo <- select(usedf, matches(paste(input$organ_dysfunction_timeseries_criteria_checkbox,oo,paste0("Day", dd), sep="_")))
 							# this would convert count those who died as having that organ failure.  I don't think that is correct.
 							# foo[is.na(foo)] = 1
 							usedf[[oo]] <- ifelse(rowSums(foo, na.rm = TRUE) == 0, 0, 1)
 							
 						}
 
-						foo <- select_and_summarize(usedf, organs, c("Outcome"))
+						foo <- select_and_summarize(usedf, input$organ_dysfunction_timeseries_organs_checkbox, c("Outcome"))
 						foo$day <- dd
 
 						#count the number of rows with all nans so that I can subtract that from the total sample later on
 						cname <- paste0("allNAN",dd)
-						fee <- select(select(select(usedf, contains(criteria)),contains(paste0("Day",dd))), -contains("Count"))
+					    fee <- select(usedf, contains(criteria) & contains(paste0("Day",dd)) & -contains("Count"))
 						usedf[[cname]] <- ifelse(rowSums(is.na(fee)) == ncol(fee), 1, 0)
 						bar <- select_and_summarize(usedf, c(cname), c("Outcome"))
 						#print(bar)
@@ -63,7 +64,7 @@ organ_dysfunction_timeseries_server <- function(id){
 						df1 <- rbind(df1, foo)
 					}
 
-					foo <- generate_timeseries_line_plot(df1, "organ", organs, organ_colors, input$organ_dysfunction_timeseries_line_plot_overall_brush, input$organ_dysfunction_timeseries_line_plot_mortality_brush)
+					foo <- generate_timeseries_line_plot(df1, "organ", input$organ_dysfunction_timeseries_organs_checkbox, organ_colors, input$organ_dysfunction_timeseries_line_plot_overall_brush, input$organ_dysfunction_timeseries_line_plot_mortality_brush)
 
 					organ_dysfunction_timeseries_plots$overall <- foo$overall
 					organ_dysfunction_timeseries_plots$mortality <- foo$mortality
@@ -72,7 +73,7 @@ organ_dysfunction_timeseries_server <- function(id){
 					output$organ_dysfunction_timeseries_line_plot_mortality <- renderPlot(organ_dysfunction_timeseries_plots$mortality)
 
 					# update the plot title
-					txt <- paste("Organ dysfunction timeseries for the", paste(input$organ_dysfunction_criteria_checkbox, collapse = ", "), "criteria")
+					txt <- paste("Organ dysfunction timeseries for the", paste(input$organ_dysfunction_timeseries_criteria_checkbox, collapse = ", "), "criteria")
 					output$organ_dysfunction_timeseries_plot_title <- renderText(txt)
 				})
 			})
@@ -92,9 +93,10 @@ organ_dysfunction_timeseries_server <- function(id){
 
 
 			# validate the checkboxes 
-			output$organ_dysfunction_criteria_error <- renderText({
+			output$organ_dysfunction_timeseries_error <- renderText({
 				validate(
-					need(input$organ_dysfunction_criteria_checkbox, message = 'Please select at least one criteria.'),
+					need(input$organ_dysfunction_timeseries_criteria_checkbox, message = 'Please select at least one criteria.'),
+					need(input$organ_dysfunction_timeseries_organs_checkbox, message = 'Please select at least one organ.'),
 				)
 			})
 		}
