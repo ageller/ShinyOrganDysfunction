@@ -32,11 +32,15 @@ source("src/R/organ_bar_chart_sidebarPanel.R")
 source("src/R/organ_dysfunction_criteria_bar/sidebarPanel.R")
 source("src/R/organ_dysfunction_timeseries_bar/sidebarPanel.R")
 source("src/R/organ_dysfunction_timeseries_sankey/sidebarPanel.R")
+source("src/R/demographics_sankey/sidebarPanel.R")
+
+# modules for the main panel
 source("src/R/organ_support_bar/mainPanel.R")
 source("src/R/organ_dysfunction_bar/mainPanel.R")
 source("src/R/organ_dysfunction_criteria_bar/mainPanel.R")
 source("src/R/organ_dysfunction_timeseries_bar/mainPanel.R")
 source("src/R/organ_dysfunction_timeseries_sankey/mainPanel.R")
+source("src/R/demographics_sankey/mainPanel.R")
 
 # modules for the server
 source("src/R/shared_server.R")
@@ -45,6 +49,7 @@ source("src/R/organ_dysfunction_bar/server.R")
 source("src/R/organ_dysfunction_criteria_bar/server.R")
 source("src/R/organ_dysfunction_timeseries_bar/server.R")
 source("src/R/organ_dysfunction_timeseries_sankey/server.R")
+source("src/R/demographics_sankey/server.R")
 
 # everything will be on the same namespace
 namespace <- "Nelson"
@@ -87,6 +92,7 @@ ui <- fluidPage(
 		conditionalPanel(condition="input.mainPanelTabSelected==3", organ_dysfunction_criteria_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==4", organ_dysfunction_timeseries_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==5", organ_dysfunction_timeseries_sankey_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==6", demographics_sankey_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 	),
 
@@ -113,6 +119,10 @@ ui <- fluidPage(
 				value=5, 
 				organ_dysfunction_timeseries_sankey_main(namespace)
 			),
+			tabPanel("Deomographics (sankey)",
+				value=6, 
+				demographics_sankey_main(namespace)
+			),
 		),
 		htmlOutput(ns("summary_table"))
 
@@ -130,6 +140,7 @@ server <- function(input, output, session) {
 	organ_dysfunction_criteria_server(namespace)
 	organ_dysfunction_timeseries_server(namespace)
 	organ_dysfunction_timeseries_sankey_server(namespace)
+	demographics_sankey_server(namespace)
 }
 
 

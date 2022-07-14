@@ -93,7 +93,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 
 
 					output$organ_dysfunction_timeseries_sankey_plot <- renderSankeyNetwork({
-						fig <- generate_sankey_plot(nodes2, links)
+						fig <- generate_sankey_plot(nodes2, links, 0)
 
 						# add some custom formatting
 						onRender(fig,

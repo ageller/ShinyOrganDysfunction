@@ -331,7 +331,7 @@ generate_timeseries_line_plot <- function(usedf, plot_type, cols, plot_colors, b
 }
 
 
-generate_sankey_plot <- function(nodes, links){
+generate_sankey_plot <- function(nodes, links, iterations){
 	# can I allow zooming??
 
 	# add this so that I can color all the nodes gray
@@ -342,7 +342,7 @@ generate_sankey_plot <- function(nodes, links){
 	fig <- sankeyNetwork(Links = links, Nodes = nodes,
 		Source = "source", Target = "target",
 		Value = "number", NodeID = "name", LinkGroup="Outcome", NodeGroup="group",
-		fontSize= 12, nodeWidth = 10, colourScale = my_color, iterations = 0)
+		fontSize= 12, nodeWidth = 10, colourScale = my_color, iterations = iterations)
 
 
 
