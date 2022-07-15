@@ -105,27 +105,27 @@ ui <- fluidPage(
 	mainPanel(
 		tabsetPanel(
 			id = ns("mainPanelTabSelected"),
-			tabPanel("Support Type (bar)",
+			tabPanel("1. Support Type (bar)",
 				value=1, 
 				organ_support_main(namespace),
 			),
-			tabPanel("Dysfunction Type (bar)",
+			tabPanel("2. Dysfunction Type (bar)",
 				value=2, 
 				organ_dysfunction_main(namespace)
 			),
-			tabPanel("Dysfunction Criteria (bar)",
+			tabPanel("3. Dysfunction Criteria (bar)",
 				value=3, 
 				organ_dysfunction_criteria_main(namespace)
 			),
-			tabPanel("Dysfunction Over Time (line)",
+			tabPanel("4. Dysfunction Over Time (line)",
 				value=4, 
 				organ_dysfunction_timeseries_main(namespace)
 			),
-			tabPanel("Score Over Time (sankey)",
+			tabPanel("5. Score Over Time (sankey)",
 				value=5, 
 				organ_dysfunction_timeseries_sankey_main(namespace)
 			),
-			tabPanel("Deomographics (sankey)",
+			tabPanel("6. Deomographics (sankey)",
 				value=6, 
 				demographics_sankey_main(namespace)
 			),

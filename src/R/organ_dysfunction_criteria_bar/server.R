@@ -16,7 +16,7 @@ organ_dysfunction_criteria_server <- function(id){
 				input$mainPanelTabSelected
 				isolate({
 					if (input$mainPanelTabSelected == 3){
-						withProgress(message = 'Generating figure', value = 0, {
+						withProgress(message = 'Generating figure 3', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
 							# (is there a way to do this without repeating code??)

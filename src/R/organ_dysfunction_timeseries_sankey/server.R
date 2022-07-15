@@ -13,7 +13,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 				input$mainPanelTabSelected
 				isolate({
 					if (input$mainPanelTabSelected == 5){
-						withProgress(message = 'Generating figure', value = 0, {
+						withProgress(message = 'Generating figure 5', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
 							# (is there a way to do this without repeating code??)
@@ -23,8 +23,11 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 								need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
 							)
 
+
+							useOrgan <- input[[paste0('organ_dysfunction_timeseries_sankey_organs_radio_',input$organ_dysfunction_timeseries_sankey_criteria_radio)]]
+
 							# take the selection on the data
-							usedf <- select(selected_dfFull, matches('Outcome') | (contains(input$organ_dysfunction_timeseries_sankey_criteria_radio) & contains(input$organ_dysfunction_timeseries_sankey_organs_radio)))
+							usedf <- select(selected_dfFull, matches('Outcome') | (contains(input$organ_dysfunction_timeseries_sankey_criteria_radio) & contains(useOrgan)))
 							usedf$Outcome <- as.character(usedf$Outcome)
 
 
@@ -60,8 +63,8 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 									dd2 <- as.numeric(dd1) + 1
 									for (ss1 in scores){
 										#select all rows that have the give score on day dd
-										col1 <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, input$organ_dysfunction_timeseries_sankey_organs_radio, paste0("Day",dd1), sep = "_")
-										col2 <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, input$organ_dysfunction_timeseries_sankey_organs_radio, paste0("Day",dd2), sep = "_")
+										col1 <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, useOrgan, paste0("Day",dd1), sep = "_")
+										col2 <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, useOrgan, paste0("Day",dd2), sep = "_")
 										#loop through scores again to find the scores for the following day
 										for (ss2 in scores){
 											# ########## TO DO ############### This needs some check to make sure that the criteria as the given organ
@@ -85,7 +88,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 								dd <- 7
 								for (ss in scores){
 									#select all rows that have the give score on day dd
-									col <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, input$organ_dysfunction_timeseries_sankey_organs_radio, paste0("Day",dd), sep = "_")
+									col <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, useOrgan, paste0("Day",dd), sep = "_")
 									foo <- filter(usedf, usedf[[col]] == ss & usedf$Outcome == oo)
 									if (nrow(foo) > 0){
 										source <- nodes[nodes$name == paste("Day",dd,"Score",ss), ]$node
@@ -144,7 +147,7 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 							})
 
 							# update the plot title
-							txt <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, "scores over time for", input$organ_dysfunction_timeseries_sankey_organs_radio)
+							txt <- paste(input$organ_dysfunction_timeseries_sankey_criteria_radio, "scores over time for", useOrgan)
 							output$organ_dysfunction_timeseries_sankey_plot_title <- renderText(txt)
 
 						})

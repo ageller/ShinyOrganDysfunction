@@ -16,7 +16,7 @@ organ_dysfunction_timeseries_server <- function(id){
 				input$mainPanelTabSelected
 				isolate({
 					if (input$mainPanelTabSelected == 4){
-						withProgress(message = 'Generating figure', value = 0, {
+						withProgress(message = 'Generating figure 4', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
 							# (is there a way to do this without repeating code??)
@@ -40,7 +40,7 @@ organ_dysfunction_timeseries_server <- function(id){
 							# 6. run through the rest of my functions
 
 							df1 <- data.frame(matrix(ncol = length(input$organ_dysfunction_timeseries_organs_checkbox)+2, nrow = 0))
-							
+
 							incProgress(0.1, detail = "summarizing data")
 
 							for (dd in days){
@@ -69,7 +69,7 @@ organ_dysfunction_timeseries_server <- function(id){
 								df1 <- rbind(df1, foo)
 							}
 
-							incProgress(0.3, detail = "creating bar plot")
+							incProgress(0.3, detail = "creating line plot")
 
 							foo <- generate_timeseries_line_plot(df1, "organ", input$organ_dysfunction_timeseries_organs_checkbox, organ_colors, input$organ_dysfunction_timeseries_line_plot_overall_brush, input$organ_dysfunction_timeseries_line_plot_mortality_brush)
 
