@@ -30,7 +30,7 @@ source("src/R/data_selection_panel.R")
 source("src/R/update_plot_panel.R")
 source("src/R/organ_bar_chart_sidebarPanel.R")
 source("src/R/organ_dysfunction_criteria_bar/sidebarPanel.R")
-source("src/R/organ_dysfunction_timeseries_bar/sidebarPanel.R")
+source("src/R/organ_dysfunction_timeseries_line/sidebarPanel.R")
 source("src/R/organ_dysfunction_timeseries_sankey/sidebarPanel.R")
 source("src/R/demographics_sankey/sidebarPanel.R")
 
@@ -38,7 +38,7 @@ source("src/R/demographics_sankey/sidebarPanel.R")
 source("src/R/organ_support_bar/mainPanel.R")
 source("src/R/organ_dysfunction_bar/mainPanel.R")
 source("src/R/organ_dysfunction_criteria_bar/mainPanel.R")
-source("src/R/organ_dysfunction_timeseries_bar/mainPanel.R")
+source("src/R/organ_dysfunction_timeseries_line/mainPanel.R")
 source("src/R/organ_dysfunction_timeseries_sankey/mainPanel.R")
 source("src/R/demographics_sankey/mainPanel.R")
 
@@ -47,7 +47,7 @@ source("src/R/shared_server.R")
 source("src/R/organ_support_bar/server.R")
 source("src/R/organ_dysfunction_bar/server.R")
 source("src/R/organ_dysfunction_criteria_bar/server.R")
-source("src/R/organ_dysfunction_timeseries_bar/server.R")
+source("src/R/organ_dysfunction_timeseries_line/server.R")
 source("src/R/organ_dysfunction_timeseries_sankey/server.R")
 source("src/R/demographics_sankey/server.R")
 
@@ -69,13 +69,19 @@ ui <- fluidPage(
 				font-style: italic;
 			}
 			.checkbox-inline { 
-					margin-left: 0px;
-					margin-right: 10px;
+				margin-left: 0px;
+				margin-right: 10px;
 			}
 			.checkbox-inline+.checkbox-inline {
-					margin-left: 0px;
-					margin-right: 10px;
+				margin-left: 0px;
+				margin-right: 10px;
 			}
+			.shiny-notification {
+				position: fixed; 
+				top: 200px;
+				left: 60%;
+			}
+
 		"))
 	),
 
@@ -88,17 +94,17 @@ ui <- fluidPage(
 	# adding the [1] to avoid printing TRUE to the screen (odd)
 	sidebarPanel(
 		data_selection_sidebar(namespace),
-		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", organ_bar_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==3", organ_dysfunction_criteria_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==4", organ_dysfunction_timeseries_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==5", organ_dysfunction_timeseries_sankey_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==6", demographics_sankey_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", ns=ns, organ_bar_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==3", ns=ns, organ_dysfunction_criteria_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==4", ns=ns, organ_dysfunction_timeseries_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==5", ns=ns, organ_dysfunction_timeseries_sankey_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==6", ns=ns, demographics_sankey_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 	),
 
 	mainPanel(
 		tabsetPanel(
-			id = "mainPanelTabSelected",
+			id = ns("mainPanelTabSelected"),
 			tabPanel("Support Type (bar)",
 				value=1, 
 				organ_support_main(namespace),

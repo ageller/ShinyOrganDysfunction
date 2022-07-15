@@ -133,6 +133,7 @@ prep_bar_chart_data <- function(usedf, plot_type, cols, agg1, agg2, df1=NULL, df
 	outdf <- cbind_and_pivot(psdf, plot_type, selections)
 	outdf <- add_tooltips(outdf, selections)
 
+
 	############################################
 	# mortality percentage given the selections
 	selectionsm <- selections
