@@ -102,6 +102,8 @@ ui <- fluidPage(
 		conditionalPanel(condition="input.mainPanelTabSelected==5", ns=ns, organ_dysfunction_timeseries_sankey_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==6", ns=ns, demographics_sankey_sidebar(namespace)),
 		update_plot_sidebar(namespace),
+		conditionalPanel(condition="input.mainPanelTabSelected!=5 & input.mainPanelTabSelected!=6", ns=ns, zoom_info_sidebar(namespace)),
+
 	),
 
 	mainPanel(
