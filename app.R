@@ -1,6 +1,7 @@
 # for tabs: https://shiny.rstudio.com/articles/tabsets.html
 library(shiny)
 library(shinyjs)
+library(shinythemes)
 
 library(dplyr)
 library(tidyr)
@@ -58,6 +59,10 @@ ns <- NS(namespace)
 
 # Define UI 
 ui <- fluidPage(
+
+	# set the colors using the shinytheme library : https://rstudio.github.io/shinythemes/
+	theme = shinytheme("paper"),
+
 	# I need this for the reset button
 	useShinyjs(), 
 
@@ -81,6 +86,9 @@ ui <- fluidPage(
 				position: fixed; 
 				top: 200px;
 				left: 60%;
+			}
+			.tab-pane.active div{
+				padding-left:4px;
 			}
 
 		"))
