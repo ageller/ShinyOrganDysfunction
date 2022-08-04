@@ -12,7 +12,9 @@ demographics_sankey_server <- function(id){
 				input$updatePlot
 				input$mainPanelTabSelected 
 				isolate({
-					if (input$mainPanelTabSelected == 6){
+					if (input$mainPanelTabSelected == 6 & plot_needs_update[strtoi(input$mainPanelTabSelected)]){
+						hide("demographics_sankey_plot")
+						hide("summary_table")
 						withProgress(message = 'Generating figure 6', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
@@ -105,6 +107,9 @@ demographics_sankey_server <- function(id){
 
 
 						})
+						show("demographics_sankey_plot")
+						show("summary_table")
+						plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- FALSE
 					}
 
 				})	

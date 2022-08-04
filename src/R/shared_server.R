@@ -7,6 +7,8 @@ shared_server <- function(id){
 		id,
 		function(input, output, session){
 
+			status <- reactiveVal()
+
 			# reset button
 			observeEvent(input$resetInputs, {
 				reset("AgeGroupCheckbox")
@@ -50,8 +52,33 @@ shared_server <- function(id){
 					selected_dfFull <<- select_data(dfFull, input)
 
 					output$summary_table <- renderUI(create_summary_table(selected_df))
+
+					# update this plot
+					plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- TRUE
+
+					# only update the different panels if the demographic selections changed
+					if (input_changed) {
+						plot_needs_update <<- rep(TRUE,6)
+						input_changed <<- FALSE
+					}
+
 				})
-			})	
+			}) 
+
+			# check if any of the inputs from the demographics selections have changed
+			observe({
+				input$AgeGroupCheckbox 
+				input$GenderCheckbox 
+				input$SeasonCheckbox 
+				input$malignancyRadiobutton 
+				input$transplantRadiobutton 
+				input$technologyDependenceRadiobutton 
+				input$MOD1Radiobutton 
+				input$MOD3Radiobutton 
+				isolate({
+					input_changed <<- TRUE
+				})
+			})
 
 		}
 	)

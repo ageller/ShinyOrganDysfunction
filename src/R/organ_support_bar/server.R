@@ -15,7 +15,10 @@ organ_support_server <- function(id){
 				input$updatePlot 
 				input$mainPanelTabSelected
 				isolate({
-					if (input$mainPanelTabSelected == 1){
+					if (input$mainPanelTabSelected == 1 & plot_needs_update[strtoi(input$mainPanelTabSelected)]){
+						hide("organ_support_bar_plot_overall")
+						hide("organ_support_bar_plot_mortality")
+						hide("summary_table")
 						withProgress(message = 'Generating figure 1', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
@@ -24,7 +27,7 @@ organ_support_server <- function(id){
 								need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
 								need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
 								need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
-								need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+								need(input$organ_support_bar_agg1 != input$organ_support_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
 							)
 
 							# take the selection on the data (<<- is "super assign" to update the global variable)
@@ -33,7 +36,7 @@ organ_support_server <- function(id){
 							incProgress(0.3, detail = "creating bar plot")
 
 							# create the plots and save them in the plots object
-							foo <- generate_bar_plot(usedf, "Organ_Support_Type", c("Mechanical_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$organ_bar_agg1, input$organ_bar_agg2, input$organ_support_bar_plot_overall_brush, input$organ_support_bar_plot_mortality_brush)
+							foo <- generate_bar_plot(usedf, "Organ_Support_Type", c("Mechanical_Ventilation", "Vasoactives", "NPPV", "ECMO", "CRRT"), input$organ_support_bar_agg1, input$organ_support_bar_agg2, input$organ_support_bar_plot_overall_brush, input$organ_support_bar_plot_mortality_brush)
 
 							organ_support_plots$overall <- foo$overall
 							organ_support_plots$mortality <- foo$mortality
@@ -42,12 +45,16 @@ organ_support_server <- function(id){
 							output$organ_support_bar_plot_mortality <- renderPlot(organ_support_plots$mortality)
 
 							# update the plot title
-							txt <- paste("Organ support type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
-							if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
+							txt <- paste("Organ support type aggregated by",str_replace_all(input$organ_support_bar_agg1,"_", " "))
+							if (input$organ_support_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_support_bar_agg2,"_", " "))
 							output$organ_support_plot_title <- renderText(txt)
 
-
 						})
+						show("organ_support_bar_plot_overall")
+						show("organ_support_bar_plot_mortality")
+						show("summary_table")
+						plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- FALSE
+
 					}
 				})
 			})
@@ -67,9 +74,9 @@ organ_support_server <- function(id){
 
 
 			# validate aggregation dropdowns
-			output$organ_bar_agg_error <- renderText({
+			output$organ_support_bar_agg_error <- renderText({
 				validate(
-					need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+					need(input$organ_support_bar_agg1 != input$organ_support_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
 				)
 			})
 

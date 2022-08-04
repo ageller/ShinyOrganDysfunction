@@ -15,7 +15,10 @@ organ_dysfunction_server <- function(id){
 				input$updatePlot 
 				input$mainPanelTabSelected 
 				isolate({
-					if (input$mainPanelTabSelected == 2){
+					if (input$mainPanelTabSelected == 2 & plot_needs_update[strtoi(input$mainPanelTabSelected)]){
+						hide("organ_dysfunction_bar_plot_overall")
+						hide("organ_dysfunction_bar_plot_mortality")
+						hide("summary_table")
 						withProgress(message = 'Generating figure 2', value = 0, {
 							# include this here as well so that it doesn't proceed to try to make the plot 
 							# (is there a way to do this without repeating code??)
@@ -23,7 +26,7 @@ organ_dysfunction_server <- function(id){
 								need(input$AgeGroupCheckbox, message = 'Please select at least one Age Group.'),
 								need(input$GenderCheckbox, message = 'Please select at least one Gender.'),
 								need(input$SeasonCheckbox, message = 'Please select at least one Season.'),
-								need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+								need(input$organ_dysfunction_bar_agg1 != input$organ_dysfunction_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
 							)
 
 							usedf <- selected_df
@@ -39,7 +42,7 @@ organ_dysfunction_server <- function(id){
 							incProgress(0.3, detail = "creating bar plot")
 
 							# create the plots and save them in the plots object
-							foo <- 	generate_bar_plot(usedf, "Organ_Dysfunction_Type", organs, input$organ_bar_agg1, input$organ_bar_agg2, input$organ_dysfunction_bar_plot_overall_brush, input$organ_dysfunction_bar_plot_mortality_brush)
+							foo <- 	generate_bar_plot(usedf, "Organ_Dysfunction_Type", organs, input$organ_dysfunction_bar_agg1, input$organ_dysfunction_bar_agg2, input$organ_dysfunction_bar_plot_overall_brush, input$organ_dysfunction_bar_plot_mortality_brush)
 
 							organ_dysfunction_plots$overall <- foo$overall
 							organ_dysfunction_plots$mortality <- foo$mortality
@@ -48,13 +51,16 @@ organ_dysfunction_server <- function(id){
 							output$organ_dysfunction_bar_plot_mortality <- renderPlot(organ_dysfunction_plots$mortality)
 
 							# update the plot title
-							txt <- paste("Organ dysfunction type aggregated by",str_replace_all(input$organ_bar_agg1,"_", " "))
-							if (input$organ_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_bar_agg2,"_", " "))
+							txt <- paste("Organ dysfunction type aggregated by",str_replace_all(input$organ_dysfunction_bar_agg1,"_", " "))
+							if (input$organ_dysfunction_bar_agg2 != "None") txt <- paste(txt, "and", str_replace_all(input$organ_dysfunction_bar_agg2,"_", " "))
 							output$organ_dysfunction_plot_title <- renderText(txt)
 
 							incProgress(0.7)
-
 						})
+						show("organ_dysfunction_bar_plot_overall")
+						show("organ_dysfunction_bar_plot_mortality")
+						show("summary_table")
+						plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- FALSE
 					}
 				})
 			})
@@ -72,9 +78,9 @@ organ_dysfunction_server <- function(id){
 
 
 			# validate the aggregation dropdowns
-			output$organ_bar_agg_error <- renderText({
+			output$organ_dysfunction_bar_agg_error <- renderText({
 				validate(
-					need(input$organ_bar_agg1 != input$organ_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
+					need(input$organ_dysfunction_bar_agg1 != input$organ_dysfunction_bar_agg2, message = 'Please select different values for each Aggregation Group.'),
 				)
 			})
 		}

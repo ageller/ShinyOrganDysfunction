@@ -12,7 +12,9 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 				input$updatePlot 
 				input$mainPanelTabSelected
 				isolate({
-					if (input$mainPanelTabSelected == 5){
+					if (input$mainPanelTabSelected == 5 & plot_needs_update[strtoi(input$mainPanelTabSelected)]){
+						hide("organ_dysfunction_timeseries_sankey_plot")
+						hide("summary_table")
 						withProgress(message = 'Generating figure 5', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
@@ -151,7 +153,9 @@ organ_dysfunction_timeseries_sankey_server <- function(id){
 							output$organ_dysfunction_timeseries_sankey_plot_title <- renderText(txt)
 
 						})
-
+						show("organ_dysfunction_timeseries_sankey_plot")
+						show("summary_table")
+						plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- FALSE
 					}
 				})
 			})

@@ -28,7 +28,8 @@ source("src/R/plotting_utils.R")
 # modules for the ui
 source("src/R/data_selection_panel.R")
 source("src/R/update_plot_panel.R")
-source("src/R/organ_bar_chart_sidebarPanel.R")
+source("src/R/organ_support_bar/sidebarPanel.R")
+source("src/R/organ_dysfunction_bar/sidebarPanel.R")
 source("src/R/organ_dysfunction_criteria_bar/sidebarPanel.R")
 source("src/R/organ_dysfunction_timeseries_line/sidebarPanel.R")
 source("src/R/organ_dysfunction_timeseries_sankey/sidebarPanel.R")
@@ -94,7 +95,8 @@ ui <- fluidPage(
 	# adding the [1] to avoid printing TRUE to the screen (odd)
 	sidebarPanel(
 		data_selection_sidebar(namespace),
-		conditionalPanel(condition="input.mainPanelTabSelected==1 | input.mainPanelTabSelected==2", ns=ns, organ_bar_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==1", ns=ns, organ_support_bar_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==2", ns=ns, organ_dysfunction_bar_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==3", ns=ns, organ_dysfunction_criteria_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==4", ns=ns, organ_dysfunction_timeseries_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==5", ns=ns, organ_dysfunction_timeseries_sankey_sidebar(namespace)),

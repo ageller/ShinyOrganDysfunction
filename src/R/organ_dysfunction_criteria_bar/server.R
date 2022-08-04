@@ -15,7 +15,10 @@ organ_dysfunction_criteria_server <- function(id){
 				input$updatePlot 
 				input$mainPanelTabSelected
 				isolate({
-					if (input$mainPanelTabSelected == 3){
+					if (input$mainPanelTabSelected == 3 & plot_needs_update[strtoi(input$mainPanelTabSelected)]){
+						hide("organ_dysfunction_criteria_bar_plot_overall")
+						hide("organ_dysfunction_criteria_bar_plot_mortality")
+						hide("summary_table")
 						withProgress(message = 'Generating figure 3', value = 0, {
 
 							# include this here as well so that it doesn't proceed to try to make the plot 
@@ -73,6 +76,10 @@ organ_dysfunction_criteria_server <- function(id){
 							incProgress(0.7)
 
 						})
+						show("organ_dysfunction_criteria_bar_plot_overall")
+						show("organ_dysfunction_criteria_bar_plot_mortality")
+						show("summary_table")
+						plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- FALSE
 					}
 				})
 			})

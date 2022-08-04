@@ -144,3 +144,9 @@ plot_element_index <- c("mortality" = -1, "overall" = -1)
 # will hold the selected data
 selected_df <- df
 selected_dfFull <- dfFull
+
+# to keep track if a plot needs an update
+# currently we have six panels
+# Note that this is also set in the shared server (I could make a function to do this, but that seems like overkill)
+plot_needs_update <- rep(TRUE,6)
+input_changed <- FALSE
