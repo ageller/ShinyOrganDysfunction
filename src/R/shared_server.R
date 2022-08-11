@@ -7,8 +7,6 @@ shared_server <- function(id){
 		id,
 		function(input, output, session){
 
-			status <- reactiveVal()
-
 			# reset button
 			observeEvent(input$resetInputs, {
 				reset("AgeGroupCheckbox")
@@ -52,6 +50,7 @@ shared_server <- function(id){
 					selected_dfFull <<- select_data(dfFull, input)
 
 					output$summary_table <- renderUI(create_summary_table(selected_df))
+					
 
 					# update this plot
 					plot_needs_update[strtoi(input$mainPanelTabSelected)] <<- TRUE
@@ -77,6 +76,18 @@ shared_server <- function(id){
 				input$MOD3Radiobutton 
 				isolate({
 					input_changed <<- TRUE
+				})
+			})
+
+			# don't show the summary table in the credits tab
+			observe({
+				input$mainPanelTabSelected
+				isolate({
+					if (input$mainPanelTabSelected == 7) {
+						hide("summary_table")
+					} else {
+						show("summary_table")
+					}
 				})
 			})
 

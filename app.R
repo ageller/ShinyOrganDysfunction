@@ -99,8 +99,7 @@ ui <- fluidPage(
 	# App title 
 	headerPanel("Pediatric Organ Dysfunction Explorer"),
 
-	# ui for the organ_support_type plot
-	# adding the [1] to avoid printing TRUE to the screen (odd)
+	# ui 
 	sidebarPanel(
 		data_selection_sidebar(namespace),
 		conditionalPanel(condition="input.mainPanelTabSelected==1", ns=ns, organ_support_bar_sidebar(namespace)),
@@ -140,6 +139,11 @@ ui <- fluidPage(
 			tabPanel("6. Deomographics (sankey)",
 				value=6, 
 				demographics_sankey_main(namespace)
+			),
+			tabPanel("Credits",
+				value=7,
+				div(style="font-size:16px; margin-top:50px",
+					"Visualization developed by Aaron M. Geller (Northwestern University IT - Research Computing Services).  Data provided by Lazaro Nelson Sanchez-Pinto (Northwestern University - Feinberg School of Medicine).")
 			),
 		),
 		htmlOutput(ns("summary_table"))
