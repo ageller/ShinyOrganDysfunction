@@ -54,6 +54,7 @@ source("src/R/organ_dysfunction_timeseries_sankey/server.R")
 source("src/R/demographics_sankey/server.R")
 
 # everything will be on the same namespace
+# Note: if you change this namespace, you need to also change it below in the Shiny.setInputValue command.
 namespace <- "Nelson"
 ns <- NS(namespace)
 
@@ -68,6 +69,10 @@ ui <- fluidPage(
 
 	# change the color for the error messages
 	# change the style for inline checkboxes that cover two lines
+	# Also get the window dimenstions for the tooltip placement
+	# From https://stackoverflow.com/questions/36995142/get-the-size-of-the-window-in-shiny
+	# BUT note that Shiny.setInputValue requires the namespace, which I have hardcoded below.  (There does not appear to be a better way.)
+	# If that namespace changes above, it must be changed here as well
 	tags$head(
 		tags$style(HTML("
 			.shiny-output-error-validation {
@@ -91,7 +96,21 @@ ui <- fluidPage(
 				padding-left:4px;
 			}
 
-		"))
+		")),
+		tags$script('
+			var dimensions = [0, 0];
+			$(document).on("shiny:connected", function(e) {
+				dimensions[0] = window.innerWidth;
+				dimensions[1] = window.innerHeight;
+				Shiny.setInputValue("Nelson-dimensions", dimensions);
+			});
+			$(window).resize(function(e) {
+				dimensions[0] = window.innerWidth;
+				dimensions[1] = window.innerHeight;
+				Shiny.setInputValue("Nelson-dimensions", dimensions);
+			});
+		', ns(namespace)
+		)
 	),
 
 
@@ -106,8 +125,8 @@ ui <- fluidPage(
 		conditionalPanel(condition="input.mainPanelTabSelected==2", ns=ns, organ_dysfunction_bar_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==3", ns=ns, organ_dysfunction_criteria_sidebar(namespace)),
 		conditionalPanel(condition="input.mainPanelTabSelected==4", ns=ns, organ_dysfunction_timeseries_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==5", ns=ns, organ_dysfunction_timeseries_sankey_sidebar(namespace)),
-		conditionalPanel(condition="input.mainPanelTabSelected==6", ns=ns, demographics_sankey_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==5", ns=ns, demographics_sankey_sidebar(namespace)),
+		conditionalPanel(condition="input.mainPanelTabSelected==6", ns=ns, organ_dysfunction_timeseries_sankey_sidebar(namespace)),
 		update_plot_sidebar(namespace),
 		conditionalPanel(condition="input.mainPanelTabSelected!=5 & input.mainPanelTabSelected!=6", ns=ns, zoom_info_sidebar(namespace)),
 
@@ -132,14 +151,15 @@ ui <- fluidPage(
 				value=4, 
 				organ_dysfunction_timeseries_main(namespace)
 			),
-			tabPanel("5. Score Over Time (sankey)",
+			tabPanel("5. Demographics (sankey)",
 				value=5, 
-				organ_dysfunction_timeseries_sankey_main(namespace)
-			),
-			tabPanel("6. Deomographics (sankey)",
-				value=6, 
 				demographics_sankey_main(namespace)
 			),
+			tabPanel("6. Score Over Time (sankey)",
+				value=6, 
+				organ_dysfunction_timeseries_sankey_main(namespace)
+			),
+
 			tabPanel("Credits",
 				value=7,
 				div(style="font-size:16px; margin-top:50px",

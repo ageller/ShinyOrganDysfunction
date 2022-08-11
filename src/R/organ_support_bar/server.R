@@ -62,12 +62,12 @@ organ_support_server <- function(id){
 
 			# for tooltips
 			observe({
-				tooltip <- create_bar_tooltip(input$organ_support_bar_plot_mortality_hover, organ_support_plots$mortality, "mortality")
+				tooltip <- create_bar_tooltip(input$organ_support_bar_plot_mortality_hover, organ_support_plots$mortality, "mortality", input$dimensions)
 				if (!is.null(tooltip)) output$organ_support_bar_plot_mortality_hover_tooltip <- renderUI(tooltip)
 			})
 
 			observe({
-				tooltip <- create_bar_tooltip(input$organ_support_bar_plot_overall_hover, organ_support_plots$overall, "overall")
+				tooltip <- create_bar_tooltip(input$organ_support_bar_plot_overall_hover, organ_support_plots$overall, "overall", input$dimensions)
 				if (!is.null(tooltip)) output$organ_support_bar_plot_overall_hover_tooltip <- renderUI(tooltip)
 			})
 

@@ -100,12 +100,12 @@ organ_dysfunction_timeseries_server <- function(id){
 
 			# for tooltips
 			observe({
-				tooltip <- create_point_tooltip(input$organ_dysfunction_timeseries_line_plot_mortality_hover, organ_dysfunction_timeseries_plots$mortality, "mortality")
+				tooltip <- create_point_tooltip(input$organ_dysfunction_timeseries_line_plot_mortality_hover, organ_dysfunction_timeseries_plots$mortality, "mortality", input$dimensions)
 				if (!is.null(tooltip)) output$organ_dysfunction_timeseries_line_plot_mortality_hover_tooltip <- renderUI(tooltip)
 			})
 
 			observe({
-				tooltip <- create_point_tooltip(input$organ_dysfunction_timeseries_line_plot_overall_hover, organ_dysfunction_timeseries_plots$overall, "overall")
+				tooltip <- create_point_tooltip(input$organ_dysfunction_timeseries_line_plot_overall_hover, organ_dysfunction_timeseries_plots$overall, "overall", input$dimensions)
 				if (!is.null(tooltip)) output$organ_dysfunction_timeseries_line_plot_overall_hover_tooltip <- renderUI(tooltip)
 			})
 

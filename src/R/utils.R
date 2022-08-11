@@ -54,7 +54,7 @@ select_data <- function(usedf, input){
 }
 
 # functions for tooltips
-create_bar_tooltip <- function(hover, plot, index){
+create_bar_tooltip <- function(hover, plot, index, windowDimensions = c(0,0)){
 	tooltip <- NULL
 	reset <- TRUE
 	if (is.numeric(hover$y) && is.numeric(hover$x)){
@@ -71,7 +71,7 @@ create_bar_tooltip <- function(hover, plot, index){
 					plot_element_index[index] <<- foo
 
 					# create the tooltip
-					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]])
+					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]], windowDimensions)
 
 				}
 			} 
@@ -86,7 +86,7 @@ create_bar_tooltip <- function(hover, plot, index){
 
 	return(tooltip)
 }
-create_point_tooltip <- function(hover, plot, index, near=0.001){
+create_point_tooltip <- function(hover, plot, index, windowDimensions = c(0,0), near=0.001){
 	tooltip <- NULL
 	reset <- TRUE
 	if (is.numeric(hover$y) && is.numeric(hover$x)){
@@ -106,7 +106,7 @@ create_point_tooltip <- function(hover, plot, index, near=0.001){
 					plot_element_index[index] <<- foo
 
 					# create the tooltip
-					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]])
+					tooltip <- set_tooltip(hover$coords_css$x + 10, hover$coords_css$y + 10, plot_data$tooltip[[plot_element_index[index]]], windowDimensions)
 
 				}
 			} 
@@ -121,7 +121,8 @@ create_point_tooltip <- function(hover, plot, index, near=0.001){
 
 	return(tooltip)
 }
-set_tooltip <- function(x,y,content){
+set_tooltip <- function(x,y,content, windowDimensions){
+	if (x + 200 > windowDimensions[1]*2/3.) x <- x - 200; # The mainPanel is 2/3 te size of the page
 	style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); padding:10px;",
 					"left:", x, "px; top:", y, "px;")
 
